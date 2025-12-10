@@ -1,5 +1,123 @@
-// Initialize bookings from localStorage
-let bookings = JSON.parse(localStorage.getItem('bookings')) || [];
+// Database Management System
+class BookingDatabase {
+    constructor() {
+        this.storageKey = 'ssmv_bookings_database';
+        this.init();
+    }
+
+    init() {
+        // Initialize database if it doesn't exist
+        if (!localStorage.getItem(this.storageKey)) {
+            this.saveToStorage([]);
+        }
+    }
+
+    // Get all bookings from storage
+    getAllBookings() {
+        try {
+            const data = localStorage.getItem(this.storageKey);
+            return data ? JSON.parse(data) : [];
+        } catch (error) {
+            console.error('Error reading bookings from storage:', error);
+            return [];
+        }
+    }
+
+    // Save bookings to storage
+    saveToStorage(bookings) {
+        try {
+            localStorage.setItem(this.storageKey, JSON.stringify(bookings));
+            return true;
+        } catch (error) {
+            console.error('Error saving bookings to storage:', error);
+            return false;
+        }
+    }
+
+    // Add a new booking
+    addBooking(bookingData) {
+        try {
+            const bookings = this.getAllBookings();
+            const newBooking = {
+                id: Date.now() + Math.random(), // More unique ID
+                ...bookingData,
+                bookedAt: new Date().toISOString(),
+                status: 'confirmed'
+            };
+            bookings.push(newBooking);
+            this.saveToStorage(bookings);
+            console.log('Booking added successfully:', newBooking);
+            return newBooking;
+        } catch (error) {
+            console.error('Error adding booking:', error);
+            return null;
+        }
+    }
+
+    // Delete a booking by ID
+    deleteBooking(id) {
+        try {
+            const bookings = this.getAllBookings();
+            const filteredBookings = bookings.filter(booking => booking.id != id);
+            this.saveToStorage(filteredBookings);
+            console.log('Booking deleted successfully:', id);
+            return true;
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+            return false;
+        }
+    }
+
+    // Clear all bookings
+    clearAllBookings() {
+        try {
+            this.saveToStorage([]);
+            console.log('All bookings cleared successfully');
+            return true;
+        } catch (error) {
+            console.error('Error clearing bookings:', error);
+            return false;
+        }
+    }
+
+    // Search bookings by email or phone
+    searchBookings(email, phone) {
+        try {
+            const bookings = this.getAllBookings();
+            return bookings.filter(booking => {
+                const emailMatch = email && booking.email.toLowerCase() === email.toLowerCase();
+                const phoneMatch = phone && booking.phone.includes(phone);
+                return emailMatch || phoneMatch;
+            });
+        } catch (error) {
+            console.error('Error searching bookings:', error);
+            return [];
+        }
+    }
+
+    // Get booking statistics
+    getStats() {
+        try {
+            const bookings = this.getAllBookings();
+            const today = new Date().toISOString().split('T')[0];
+            
+            return {
+                total: bookings.length,
+                today: bookings.filter(b => b.date === today).length,
+                totalPeople: bookings.reduce((sum, b) => sum + parseInt(b.numberOfPeople || 0), 0)
+            };
+        } catch (error) {
+            console.error('Error getting stats:', error);
+            return { total: 0, today: 0, totalPeople: 0 };
+        }
+    }
+}
+
+// Initialize the database
+const bookingDB = new BookingDatabase();
+
+// Initialize bookings from database (for backward compatibility)
+let bookings = bookingDB.getAllBookings();
 
 // Admin credentials (in production, this should be handled server-side)
 const ADMIN_CREDENTIALS = {
@@ -140,26 +258,32 @@ if (bookingForm) {
 
         // Get form data
         const formData = {
-            id: Date.now(),
             date: document.getElementById('appointmentDate').value,
             time: document.getElementById('appointmentTime').value,
             numberOfPeople: document.getElementById('numberOfPeople').value,
             details: document.getElementById('appointmentDetails').value,
             name: document.getElementById('fullName').value,
             email: document.getElementById('email').value,
-            phone: document.getElementById('phone').value,
-            bookedAt: new Date().toISOString()
+            phone: document.getElementById('phone').value
         };
 
-        // Save to localStorage
-        bookings.push(formData);
-        localStorage.setItem('bookings', JSON.stringify(bookings));
+        // Save to database
+        const newBooking = bookingDB.addBooking(formData);
+        
+        if (newBooking) {
+            // Update local bookings array
+            bookings = bookingDB.getAllBookings();
+            
+            // Send confirmation email
+            sendConfirmationEmail(newBooking);
 
-        // Send confirmation email
-        sendConfirmationEmail(formData);
-
-        // Show confirmation modal
-        showConfirmation(formData);
+            // Show confirmation modal
+            showConfirmation(newBooking);
+            
+            console.log('Booking saved successfully:', newBooking);
+        } else {
+            alert('Error saving booking. Please try again.');
+        }
     });
 }
 
@@ -233,25 +357,40 @@ if (window.location.pathname.includes('admin.html')) {
     if (!isLoggedIn()) {
         window.location.href = 'login.html';
     } else {
-        loadAdminDashboard();
+        // Add a small delay to ensure DOM is fully loaded
+        setTimeout(() => {
+            loadAdminDashboard();
+        }, 100);
     }
 }
 
+// Auto-refresh admin dashboard every 30 seconds to show new bookings
+if (window.location.pathname.includes('admin.html') && isLoggedIn()) {
+    setInterval(() => {
+        loadAdminDashboard();
+        console.log('Admin dashboard refreshed automatically');
+    }, 30000); // Refresh every 30 seconds
+}
+
 function loadAdminDashboard() {
+    // Refresh bookings from database
+    bookings = bookingDB.getAllBookings();
     updateStats();
     displayBookings();
     displayMobileBookings();
 }
 
 function updateStats() {
-    const totalBookings = bookings.length;
-    const today = new Date().toISOString().split('T')[0];
-    const todayBookings = bookings.filter(b => b.date === today).length;
-    const totalPeople = bookings.reduce((sum, b) => sum + parseInt(b.numberOfPeople), 0);
-
-    document.getElementById('totalBookings').textContent = totalBookings;
-    document.getElementById('todayBookings').textContent = todayBookings;
-    document.getElementById('totalPeople').textContent = totalPeople;
+    // Get fresh stats from database
+    const stats = bookingDB.getStats();
+    
+    const totalBookingsElement = document.getElementById('totalBookings');
+    const todayBookingsElement = document.getElementById('todayBookings');
+    const totalPeopleElement = document.getElementById('totalPeople');
+    
+    if (totalBookingsElement) totalBookingsElement.textContent = stats.total;
+    if (todayBookingsElement) todayBookingsElement.textContent = stats.today;
+    if (totalPeopleElement) totalPeopleElement.textContent = stats.totalPeople;
 }
 
 function displayBookings() {
@@ -307,17 +446,25 @@ function formatDate(dateStr) {
 
 function deleteBooking(id) {
     if (confirm('Are you sure you want to delete this booking?')) {
-        bookings = bookings.filter(b => b.id !== id);
-        localStorage.setItem('bookings', JSON.stringify(bookings));
-        loadAdminDashboard();
+        if (bookingDB.deleteBooking(id)) {
+            // Refresh bookings from database
+            bookings = bookingDB.getAllBookings();
+            loadAdminDashboard();
+        } else {
+            alert('Error deleting booking. Please try again.');
+        }
     }
 }
 
 function clearAllBookings() {
     if (confirm('Are you sure you want to delete ALL bookings? This action cannot be undone.')) {
-        bookings = [];
-        localStorage.setItem('bookings', JSON.stringify(bookings));
-        loadAdminDashboard();
+        if (bookingDB.clearAllBookings()) {
+            // Refresh bookings from database
+            bookings = bookingDB.getAllBookings();
+            loadAdminDashboard();
+        } else {
+            alert('Error clearing bookings. Please try again.');
+        }
     }
 }
 
@@ -399,7 +546,7 @@ function displayMobileBookings() {
 
 // Search bookings by email or phone
 function searchBookings() {
-    const email = document.getElementById('searchEmail').value.trim().toLowerCase();
+    const email = document.getElementById('searchEmail').value.trim();
     const phone = document.getElementById('searchPhone').value.trim();
     
     if (!email && !phone) {
@@ -407,12 +554,8 @@ function searchBookings() {
         return;
     }
     
-    // Filter bookings based on email or phone
-    const userBookings = bookings.filter(booking => {
-        const emailMatch = email && booking.email.toLowerCase() === email;
-        const phoneMatch = phone && booking.phone.includes(phone);
-        return emailMatch || phoneMatch;
-    });
+    // Use database search function
+    const userBookings = bookingDB.searchBookings(email, phone);
     
     displayUserBookings(userBookings);
 }
@@ -545,4 +688,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Debug: Log current bookings count on page load
+    console.log('Page loaded. Current bookings in database:', bookingDB.getAllBookings().length);
+    
+    // Add a global function to check database status (for debugging)
+    window.checkBookingDatabase = function() {
+        const allBookings = bookingDB.getAllBookings();
+        console.log('=== BOOKING DATABASE STATUS ===');
+        console.log('Total bookings:', allBookings.length);
+        console.log('Storage key:', bookingDB.storageKey);
+        console.log('Raw storage data:', localStorage.getItem(bookingDB.storageKey));
+        console.log('Parsed bookings:', allBookings);
+        console.log('===============================');
+        return allBookings;
+    };
+    
+    // Add a global function to manually refresh admin dashboard (for debugging)
+    window.refreshAdminDashboard = function() {
+        if (typeof loadAdminDashboard === 'function') {
+            loadAdminDashboard();
+            console.log('Admin dashboard refreshed manually');
+        } else {
+            console.log('Admin dashboard function not available on this page');
+        }
+    };
 });
