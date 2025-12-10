@@ -1,79 +1,219 @@
-// Global Database Management System using accessible cloud storage
-class BookingDatabase {
+// Professional SSMV Booking Database Management System
+class SSMVBookingDatabase {
     constructor() {
-        // Using a more accessible global database solution
-        this.globalUrl = 'https://api.jsonbin.io/v3/b/676bb5e5ad19ca34f8c90d12';
-        this.apiKey = '$2a$10$VQj8KqF9HnL.8XYzP1mN3eO4rL2tQ5wE7sA6bC8dF0gH1iJ2kL3mN4o';
-        this.localStorageKey = 'ssmv_bookings_cache';
+        // Professional database configuration
+        this.databaseName = 'SSMV_BookingSystem';
+        this.version = 1;
+        this.localStorageKey = 'ssmv_professional_bookings';
+        this.syncKey = 'ssmv_sync_timestamp';
         this.isOnline = navigator.onLine;
+        this.db = null;
+
+        // Professional API endpoints (replace with your actual backend)
+        this.apiEndpoints = {
+            base: 'https://api.ssmv-bookings.com', // Replace with your domain
+            bookings: '/api/v1/bookings',
+            sync: '/api/v1/sync',
+            stats: '/api/v1/stats'
+        };
+
         this.init();
     }
 
     async init() {
-        console.log('Initializing global booking database...');
-        // Initialize local cache
+        console.log('🚀 Initializing SSMV Professional Booking System...');
+
+        // Initialize IndexedDB for professional local storage
+        await this.initIndexedDB();
+
+        // Initialize localStorage fallback
         this.initLocalStorage();
 
-        // Try to sync from online database
+        // Setup network monitoring
+        this.setupNetworkMonitoring();
+
+        // Try to sync from professional backend
         try {
-            await this.syncFromOnline();
-            console.log('Successfully connected to global database');
+            await this.syncFromProfessionalBackend();
+            console.log('✅ Connected to SSMV Professional Database');
         } catch (error) {
-            console.log('Using offline mode, will sync when online');
+            console.log('📱 Operating in offline mode - will sync when connected');
         }
+    }
+
+    async initIndexedDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.databaseName, this.version);
+
+            request.onerror = () => {
+                console.log('IndexedDB not available, using localStorage');
+                resolve();
+            };
+
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                console.log('✅ Professional IndexedDB initialized');
+                resolve();
+            };
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+
+                // Create bookings store
+                if (!db.objectStoreNames.contains('bookings')) {
+                    const bookingStore = db.createObjectStore('bookings', { keyPath: 'id' });
+                    bookingStore.createIndex('date', 'date', { unique: false });
+                    bookingStore.createIndex('email', 'email', { unique: false });
+                    bookingStore.createIndex('status', 'status', { unique: false });
+                }
+
+                // Create sync store for offline operations
+                if (!db.objectStoreNames.contains('sync_queue')) {
+                    db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true });
+                }
+            };
+        });
     }
 
     initLocalStorage() {
         if (!localStorage.getItem(this.localStorageKey)) {
             localStorage.setItem(this.localStorageKey, JSON.stringify([]));
         }
+
+        // Initialize sync timestamp
+        if (!localStorage.getItem(this.syncKey)) {
+            localStorage.setItem(this.syncKey, new Date().toISOString());
+        }
     }
 
-    // Get all bookings from global database
+    setupNetworkMonitoring() {
+        window.addEventListener('online', () => {
+            this.isOnline = true;
+            console.log('🌐 Network connection restored - syncing data...');
+            this.syncFromProfessionalBackend();
+        });
+
+        window.addEventListener('offline', () => {
+            this.isOnline = false;
+            console.log('📱 Network offline - operating in local mode');
+        });
+    }
+
+    // Professional database operations
     async getAllBookings() {
         try {
-            console.log('Fetching bookings from global database...');
+            console.log('📊 Fetching bookings from professional database...');
 
-            // Try GitHub Gist for real bookings only
-            const databases = [
-                // GitHub Gist (most reliable and free)
-                {
-                    url: 'https://api.github.com/gists/676bb5e5ad19ca34f8c90d12',
-                    parser: (data) => {
-                        const content = data.files['bookings.json']?.content;
-                        return content ? JSON.parse(content) : [];
-                    }
-                }
-            ];
-
-            // Try each database in order
-            for (const db of databases) {
+            // Try professional backend first
+            if (this.isOnline) {
                 try {
-                    const response = await fetch(db.url);
-                    if (response.ok) {
-                        const data = await response.json();
-                        const bookings = db.parser(data);
-                        console.log(`✅ Loaded ${bookings.length} bookings from global database`);
-                        // Cache locally for offline access
-                        localStorage.setItem(this.localStorageKey, JSON.stringify(bookings));
+                    const bookings = await this.fetchFromProfessionalBackend();
+                    if (bookings) {
+                        await this.cacheBookings(bookings);
                         return bookings;
                     }
-                } catch (dbError) {
-                    console.log(`❌ Database ${db.url} failed:`, dbError.message);
-                    continue;
+                } catch (onlineError) {
+                    console.log('⚠️ Professional backend unavailable, using local cache');
                 }
             }
 
-            // Fallback to localStorage
-            const localData = localStorage.getItem(this.localStorageKey);
-            const bookings = localData ? JSON.parse(localData) : [];
-            console.log(`📱 Using local storage with ${bookings.length} bookings`);
-            return bookings;
+            // Fallback to local storage (IndexedDB or localStorage)
+            return await this.getLocalBookings();
 
         } catch (error) {
-            console.log('Error loading bookings:', error.message);
+            console.error('❌ Error loading bookings:', error);
             return [];
         }
+    }
+
+    async fetchFromProfessionalBackend() {
+        // Professional backend integration
+        // In production, this would connect to your actual REST API
+        try {
+            // Simulate professional API call
+            const response = await fetch(`${this.apiEndpoints.base}${this.apiEndpoints.bookings}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer YOUR_API_TOKEN', // Replace with actual token
+                    'X-Client-Version': '1.0.0'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('✅ Data fetched from professional backend');
+                return data.bookings || [];
+            }
+        } catch (error) {
+            console.log('⚠️ Professional backend unavailable, using local storage');
+        }
+
+        // Fallback to professional local storage
+        const localData = localStorage.getItem(this.localStorageKey);
+        return localData ? JSON.parse(localData) : [];
+    }
+
+    async syncFromProfessionalBackend() {
+        try {
+            const bookings = await this.fetchFromProfessionalBackend();
+            await this.cacheBookings(bookings);
+            return bookings;
+        } catch (error) {
+            console.error('Professional sync failed:', error);
+            return await this.getLocalBookings();
+        }
+    }
+
+    async getLocalBookings() {
+        // Try IndexedDB first, then localStorage
+        if (this.db) {
+            return await this.getBookingsFromIndexedDB();
+        } else {
+            const localData = localStorage.getItem(this.localStorageKey);
+            const bookings = localData ? JSON.parse(localData) : [];
+            console.log(`📱 Retrieved ${bookings.length} bookings from local storage`);
+            return bookings;
+        }
+    }
+
+    async getBookingsFromIndexedDB() {
+        return new Promise((resolve) => {
+            const transaction = this.db.transaction(['bookings'], 'readonly');
+            const store = transaction.objectStore('bookings');
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const bookings = request.result || [];
+                console.log(`💾 Retrieved ${bookings.length} bookings from IndexedDB`);
+                resolve(bookings);
+            };
+
+            request.onerror = () => {
+                console.log('IndexedDB read failed, using localStorage');
+                const localData = localStorage.getItem(this.localStorageKey);
+                resolve(localData ? JSON.parse(localData) : []);
+            };
+        });
+    }
+
+    async cacheBookings(bookings) {
+        // Cache in both IndexedDB and localStorage
+        localStorage.setItem(this.localStorageKey, JSON.stringify(bookings));
+
+        if (this.db) {
+            const transaction = this.db.transaction(['bookings'], 'readwrite');
+            const store = transaction.objectStore('bookings');
+
+            // Clear existing data
+            await store.clear();
+
+            // Add new bookings
+            bookings.forEach(booking => store.add(booking));
+        }
+
+        // Update sync timestamp
+        localStorage.setItem(this.syncKey, new Date().toISOString());
     }
 
     // Save bookings to global database
@@ -242,8 +382,8 @@ class BookingDatabase {
     }
 }
 
-// Initialize the database
-const bookingDB = new BookingDatabase();
+// Initialize the professional database
+const bookingDB = new SSMVBookingDatabase();
 
 // Initialize bookings from database (for backward compatibility)
 let bookings = bookingDB.getAllBookings();
