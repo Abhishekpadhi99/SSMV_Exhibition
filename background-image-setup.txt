@@ -1,0 +1,67 @@
+BACKGROUND IMAGE SETUP INSTRUCTIONS
+====================================
+
+The homepage now supports a background image with a semi-transparent overlay.
+
+HOW TO ADD YOUR BACKGROUND IMAGE:
+
+1. Prepare your image:
+   - Recommended format: JPG or PNG
+   - Recommended size: 1920x1080 pixels or larger (Full HD)
+   - File should be optimized (compressed) for web use
+   - Suggested file size: Under 500KB for fast loading
+
+2. Save your image:
+   - Place your image file in the same folder as index.html
+   - Name it: background.jpg (or background.png)
+
+3. If using a different filename:
+   - Open index.html
+   - Find the line: style="background-image: url('background.jpg');"
+   - Change 'background.jpg' to your filename
+
+CURRENT SETUP:
+- Background image: background.jpg
+- Overlay: Purple-pink-indigo gradient with 60-70% opacity
+- Text color: White with drop shadow for readability
+- Feature cards: White background (unchanged)
+
+CUSTOMIZATION OPTIONS:
+
+A. Change overlay color/opacity:
+   Find this line in index.html:
+   <div class="absolute inset-0 bg-gradient-to-br from-purple-900/70 via-pink-900/60 to-indigo-900/70"></div>
+   
+   Change colors:
+   - from-purple-900/70 → from-blue-900/70 (blue overlay)
+   - via-pink-900/60 → via-red-900/60 (red overlay)
+   - to-indigo-900/70 → to-green-900/70 (green overlay)
+   
+   Change opacity (0-100):
+   - /70 = 70% opacity (darker)
+   - /50 = 50% opacity (medium)
+   - /30 = 30% opacity (lighter)
+
+B. Remove overlay (show image only):
+   Delete or comment out this line:
+   <div class="absolute inset-0 bg-gradient-to-br from-purple-900/70 via-pink-900/60 to-indigo-900/70"></div>
+
+C. Use solid color overlay instead:
+   Replace the gradient line with:
+   <div class="absolute inset-0 bg-black/50"></div>
+   (This creates a 50% black overlay)
+
+TIPS:
+- Use high-quality images for professional look
+- Ensure text remains readable on your chosen image
+- Test on both desktop and mobile devices
+- Consider using images related to appointments/scheduling
+
+EXAMPLE IMAGES TO USE:
+- Office/workspace photos
+- Calendar/planner images
+- Professional meeting rooms
+- Abstract patterns
+- Your organization's building/logo
+
+Note: If no background.jpg file is found, the page will show the overlay color only.
