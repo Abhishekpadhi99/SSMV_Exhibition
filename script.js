@@ -1,43 +1,101 @@
-// Database Management System
+// Global Database Management System using Firebase Realtime Database
 class BookingDatabase {
     constructor() {
-        this.storageKey = 'ssmv_bookings_database';
+        // Firebase Realtime Database configuration
+        this.firebaseUrl = 'https://ssmv-bookings-default-rtdb.firebaseio.com';
+        this.databasePath = '/bookings.json';
+        this.localStorageKey = 'ssmv_bookings_cache';
         this.init();
     }
 
-    init() {
-        // Initialize database if it doesn't exist
-        if (!localStorage.getItem(this.storageKey)) {
-            this.saveToStorage([]);
+    async init() {
+        console.log('Initializing global booking database...');
+        // Initialize local cache
+        this.initLocalStorage();
+
+        // Try to sync from online database
+        try {
+            await this.syncFromOnline();
+            console.log('Successfully connected to global database');
+        } catch (error) {
+            console.log('Using offline mode, will sync when online');
         }
     }
 
-    // Get all bookings from storage
-    getAllBookings() {
+    initLocalStorage() {
+        if (!localStorage.getItem(this.localStorageKey)) {
+            localStorage.setItem(this.localStorageKey, JSON.stringify([]));
+        }
+    }
+
+    // Get all bookings from Firebase
+    async getAllBookings() {
         try {
-            const data = localStorage.getItem(this.storageKey);
-            return data ? JSON.parse(data) : [];
+            console.log('Fetching bookings from global database...');
+            const response = await fetch(`${this.firebaseUrl}${this.databasePath}`);
+
+            if (response.ok) {
+                const data = await response.json();
+                const bookings = data || [];
+
+                // Cache locally for offline access
+                localStorage.setItem(this.localStorageKey, JSON.stringify(bookings));
+                console.log(`Loaded ${bookings.length} bookings from global database`);
+                return bookings;
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
         } catch (error) {
-            console.error('Error reading bookings from storage:', error);
+            console.log('Failed to load from global database, using local cache:', error.message);
+            // Fallback to local storage
+            const localData = localStorage.getItem(this.localStorageKey);
+            return localData ? JSON.parse(localData) : [];
+        }
+    }
+
+    // Save bookings to Firebase
+    async saveToOnline(bookings) {
+        try {
+            console.log('Saving bookings to global database...');
+            const response = await fetch(`${this.firebaseUrl}${this.databasePath}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(bookings)
+            });
+
+            if (response.ok) {
+                console.log('Bookings saved to global database successfully');
+                // Also cache locally
+                localStorage.setItem(this.localStorageKey, JSON.stringify(bookings));
+                return true;
+            } else {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Error saving to global database:', error);
+            // Save locally as fallback
+            localStorage.setItem(this.localStorageKey, JSON.stringify(bookings));
+            throw error; // Re-throw to handle in calling function
+        }
+    }
+
+    // Sync from online database
+    async syncFromOnline() {
+        try {
+            const onlineBookings = await this.getAllBookings();
+            return onlineBookings;
+        } catch (error) {
+            console.error('Error syncing from online database:', error);
             return [];
         }
     }
 
-    // Save bookings to storage
-    saveToStorage(bookings) {
-        try {
-            localStorage.setItem(this.storageKey, JSON.stringify(bookings));
-            return true;
-        } catch (error) {
-            console.error('Error saving bookings to storage:', error);
-            return false;
-        }
-    }
-
     // Add a new booking
-    addBooking(bookingData) {
+    async addBooking(bookingData) {
         try {
-            const bookings = this.getAllBookings();
+            const bookings = await this.getAllBookings();
             const newBooking = {
                 id: Date.now() + Math.random(), // More unique ID
                 ...bookingData,
@@ -45,7 +103,7 @@ class BookingDatabase {
                 status: 'confirmed'
             };
             bookings.push(newBooking);
-            this.saveToStorage(bookings);
+            await this.saveToOnline(bookings);
             console.log('Booking added successfully:', newBooking);
             return newBooking;
         } catch (error) {
@@ -55,11 +113,11 @@ class BookingDatabase {
     }
 
     // Delete a booking by ID
-    deleteBooking(id) {
+    async deleteBooking(id) {
         try {
-            const bookings = this.getAllBookings();
+            const bookings = await this.getAllBookings();
             const filteredBookings = bookings.filter(booking => booking.id != id);
-            this.saveToStorage(filteredBookings);
+            await this.saveToOnline(filteredBookings);
             console.log('Booking deleted successfully:', id);
             return true;
         } catch (error) {
@@ -69,9 +127,9 @@ class BookingDatabase {
     }
 
     // Clear all bookings
-    clearAllBookings() {
+    async clearAllBookings() {
         try {
-            this.saveToStorage([]);
+            await this.saveToOnline([]);
             console.log('All bookings cleared successfully');
             return true;
         } catch (error) {
@@ -81,9 +139,9 @@ class BookingDatabase {
     }
 
     // Search bookings by email or phone
-    searchBookings(email, phone) {
+    async searchBookings(email, phone) {
         try {
-            const bookings = this.getAllBookings();
+            const bookings = await this.getAllBookings();
             return bookings.filter(booking => {
                 const emailMatch = email && booking.email.toLowerCase() === email.toLowerCase();
                 const phoneMatch = phone && booking.phone.includes(phone);
@@ -96,9 +154,9 @@ class BookingDatabase {
     }
 
     // Get booking statistics
-    getStats() {
+    async getStats() {
         try {
-            const bookings = this.getAllBookings();
+            const bookings = await this.getAllBookings();
             const today = new Date().toISOString().split('T')[0];
 
             return {
@@ -253,36 +311,51 @@ function sendConfirmationEmail(data) {
 // Handle booking form submission
 const bookingForm = document.getElementById('bookingForm');
 if (bookingForm) {
-    bookingForm.addEventListener('submit', function (e) {
+    bookingForm.addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        // Get form data
-        const formData = {
-            date: document.getElementById('appointmentDate').value,
-            time: document.getElementById('appointmentTime').value,
-            numberOfPeople: document.getElementById('numberOfPeople').value,
-            details: document.getElementById('appointmentDetails').value,
-            name: document.getElementById('fullName').value,
-            email: document.getElementById('email').value,
-            phone: document.getElementById('phone').value
-        };
+        // Show loading state
+        const submitButton = e.target.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+        submitButton.disabled = true;
 
-        // Save to database
-        const newBooking = bookingDB.addBooking(formData);
+        try {
+            // Get form data
+            const formData = {
+                date: document.getElementById('appointmentDate').value,
+                time: document.getElementById('appointmentTime').value,
+                numberOfPeople: document.getElementById('numberOfPeople').value,
+                details: document.getElementById('appointmentDetails').value,
+                name: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value
+            };
 
-        if (newBooking) {
-            // Update local bookings array
-            bookings = bookingDB.getAllBookings();
+            // Save to database
+            const newBooking = await bookingDB.addBooking(formData);
 
-            // Send confirmation email
-            sendConfirmationEmail(newBooking);
+            if (newBooking) {
+                // Update local bookings array
+                bookings = await bookingDB.getAllBookings();
 
-            // Show confirmation modal
-            showConfirmation(newBooking);
+                // Send confirmation email
+                sendConfirmationEmail(newBooking);
 
-            console.log('Booking saved successfully:', newBooking);
-        } else {
+                // Show confirmation modal
+                showConfirmation(newBooking);
+
+                console.log('Booking saved successfully:', newBooking);
+            } else {
+                throw new Error('Failed to save booking');
+            }
+        } catch (error) {
+            console.error('Error saving booking:', error);
             alert('Error saving booking. Please try again.');
+        } finally {
+            // Restore button state
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
         }
     });
 }
@@ -372,25 +445,44 @@ if (window.location.pathname.includes('admin.html') && isLoggedIn()) {
     }, 30000); // Refresh every 30 seconds
 }
 
-function loadAdminDashboard() {
-    // Refresh bookings from database
-    bookings = bookingDB.getAllBookings();
-    updateStats();
-    displayBookings();
-    displayMobileBookings();
+async function loadAdminDashboard() {
+    try {
+        // Show loading state
+        const totalBookingsElement = document.getElementById('totalBookings');
+        const todayBookingsElement = document.getElementById('todayBookings');
+        const totalPeopleElement = document.getElementById('totalPeople');
+
+        if (totalBookingsElement) totalBookingsElement.textContent = '...';
+        if (todayBookingsElement) todayBookingsElement.textContent = '...';
+        if (totalPeopleElement) totalPeopleElement.textContent = '...';
+
+        // Refresh bookings from database
+        bookings = await bookingDB.getAllBookings();
+        await updateStats();
+        displayBookings();
+        displayMobileBookings();
+
+        console.log('Admin dashboard loaded successfully with', bookings.length, 'bookings');
+    } catch (error) {
+        console.error('Error loading admin dashboard:', error);
+    }
 }
 
-function updateStats() {
-    // Get fresh stats from database
-    const stats = bookingDB.getStats();
+async function updateStats() {
+    try {
+        // Get fresh stats from database
+        const stats = await bookingDB.getStats();
 
-    const totalBookingsElement = document.getElementById('totalBookings');
-    const todayBookingsElement = document.getElementById('todayBookings');
-    const totalPeopleElement = document.getElementById('totalPeople');
+        const totalBookingsElement = document.getElementById('totalBookings');
+        const todayBookingsElement = document.getElementById('todayBookings');
+        const totalPeopleElement = document.getElementById('totalPeople');
 
-    if (totalBookingsElement) totalBookingsElement.textContent = stats.total;
-    if (todayBookingsElement) todayBookingsElement.textContent = stats.today;
-    if (totalPeopleElement) totalPeopleElement.textContent = stats.totalPeople;
+        if (totalBookingsElement) totalBookingsElement.textContent = stats.total;
+        if (todayBookingsElement) todayBookingsElement.textContent = stats.today;
+        if (totalPeopleElement) totalPeopleElement.textContent = stats.totalPeople;
+    } catch (error) {
+        console.error('Error updating stats:', error);
+    }
 }
 
 function displayBookings() {
@@ -456,25 +548,37 @@ function formatDate(dateStr) {
     return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
-function deleteBooking(id) {
+async function deleteBooking(id) {
     if (confirm('Are you sure you want to delete this booking?')) {
-        if (bookingDB.deleteBooking(id)) {
-            // Refresh bookings from database
-            bookings = bookingDB.getAllBookings();
-            loadAdminDashboard();
-        } else {
+        try {
+            const success = await bookingDB.deleteBooking(id);
+            if (success) {
+                // Refresh bookings from database
+                bookings = await bookingDB.getAllBookings();
+                await loadAdminDashboard();
+            } else {
+                alert('Error deleting booking. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error deleting booking:', error);
             alert('Error deleting booking. Please try again.');
         }
     }
 }
 
-function clearAllBookings() {
+async function clearAllBookings() {
     if (confirm('Are you sure you want to delete ALL bookings? This action cannot be undone.')) {
-        if (bookingDB.clearAllBookings()) {
-            // Refresh bookings from database
-            bookings = bookingDB.getAllBookings();
-            loadAdminDashboard();
-        } else {
+        try {
+            const success = await bookingDB.clearAllBookings();
+            if (success) {
+                // Refresh bookings from database
+                bookings = await bookingDB.getAllBookings();
+                await loadAdminDashboard();
+            } else {
+                alert('Error clearing bookings. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error clearing bookings:', error);
             alert('Error clearing bookings. Please try again.');
         }
     }
@@ -557,7 +661,7 @@ function displayMobileBookings() {
 }
 
 // Search bookings by email or phone
-function searchBookings() {
+async function searchBookings() {
     const email = document.getElementById('searchEmail').value.trim();
     const phone = document.getElementById('searchPhone').value.trim();
 
@@ -566,10 +670,49 @@ function searchBookings() {
         return;
     }
 
-    // Use database search function
-    const userBookings = bookingDB.searchBookings(email, phone);
+    try {
+        // Show loading state
+        const searchResults = document.getElementById('searchResults');
+        const noResults = document.getElementById('noResults');
+        const initialState = document.getElementById('initialState');
 
-    displayUserBookings(userBookings);
+        initialState.classList.add('hidden');
+        searchResults.classList.add('hidden');
+        noResults.classList.add('hidden');
+
+        // Show loading message
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'searchLoading';
+        loadingDiv.className = 'bg-white rounded-xl shadow-lg p-8 text-center';
+        loadingDiv.innerHTML = `
+            <i class="fas fa-spinner fa-spin text-indigo-600 text-4xl mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Searching...</h3>
+            <p class="text-gray-600">Please wait while we search for your bookings.</p>
+        `;
+
+        const container = initialState.parentNode;
+        container.appendChild(loadingDiv);
+
+        // Use database search function
+        const userBookings = await bookingDB.searchBookings(email, phone);
+
+        // Remove loading message
+        const loadingElement = document.getElementById('searchLoading');
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+
+        displayUserBookings(userBookings);
+    } catch (error) {
+        console.error('Error searching bookings:', error);
+        alert('Error searching bookings. Please try again.');
+
+        // Remove loading message if it exists
+        const loadingElement = document.getElementById('searchLoading');
+        if (loadingElement) {
+            loadingElement.remove();
+        }
+    }
 }
 
 // Display user bookings
