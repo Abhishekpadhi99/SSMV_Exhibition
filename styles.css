@@ -58,40 +58,154 @@ input:focus, select:focus, textarea:focus {
     transition: all 0.2s ease-in-out;
 }
 
-/* Mobile Menu Toggle */
+/* Mobile Navigation */
+.mobile-menu {
+    display: none;
+}
+
 @media (max-width: 768px) {
-    .md\:flex {
+    .mobile-menu {
+        display: block;
+    }
+    
+    .desktop-menu {
         display: none;
+    }
+    
+    .mobile-menu-open {
+        display: block;
     }
 }
 
-/* Table Responsive */
+/* Mobile Hero Text */
+@media (max-width: 640px) {
+    .hero-title {
+        font-size: 2.5rem;
+        line-height: 1.1;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.125rem;
+        line-height: 1.4;
+    }
+}
+
+/* Mobile Form Improvements */
 @media (max-width: 768px) {
-    table {
+    .form-container {
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+    
+    .modal-content {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+}
+
+/* Table Responsive - Card Layout for Mobile */
+@media (max-width: 768px) {
+    .desktop-table {
+        display: none;
+    }
+    
+    .mobile-cards {
+        display: block;
+    }
+    
+    .booking-card {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+    }
+    
+    .booking-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .booking-card-content {
+        display: grid;
+        gap: 0.5rem;
+    }
+    
+    .booking-field {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 0.25rem 0;
+    }
+    
+    .booking-field-label {
+        font-weight: 600;
+        color: #374151;
+        min-width: 80px;
         font-size: 0.875rem;
     }
     
-    th, td {
-        padding: 0.75rem 0.5rem;
+    .booking-field-value {
+        color: #111827;
+        text-align: right;
+        flex: 1;
+        font-size: 0.875rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-cards {
+        display: none;
+    }
+    
+    .desktop-table {
+        display: table;
+    }
+}
+
+/* Stats Cards Mobile */
+@media (max-width: 640px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+/* Mobile Contact Button */
+@media (max-width: 768px) {
+    .contact-button span {
+        display: none;
+    }
+    .contact-button {
+        padding: 1rem;
+        width: 56px;
+        height: 56px;
+        justify-content: center;
+        bottom: 1rem;
+        right: 1rem;
+    }
+}
+
+/* Mobile Navigation Improvements */
+@media (max-width: 768px) {
+    .nav-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .nav-brand {
+        font-size: 1.125rem;
     }
 }
 
 /* Print Styles */
 @media print {
-    nav, button {
+    nav, button, .contact-button {
         display: none;
-    }
-}
-
-/* Mobile Responsive Contact Button */
-@media (max-width: 768px) {
-    .fixed.bottom-6.right-6 span {
-        display: none;
-    }
-    .fixed.bottom-6.right-6 {
-        padding: 1rem;
-        width: 56px;
-        height: 56px;
-        justify-content: center;
     }
 }

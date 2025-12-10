@@ -18,9 +18,11 @@ if (loginForm) {
     loginForm.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value.trim();
         const rememberMe = document.getElementById('rememberMe').checked;
+        
+        console.log('Login attempt:', { username, password }); // Debug log
         
         if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
             // Successful login
@@ -28,10 +30,12 @@ if (loginForm) {
             if (rememberMe) {
                 localStorage.setItem('rememberAdmin', 'true');
             }
+            console.log('Login successful, redirecting...'); // Debug log
             window.location.href = 'admin.html';
         } else {
             // Failed login
-            showError('Invalid username or password');
+            console.log('Login failed - incorrect credentials'); // Debug log
+            showError('Invalid username or password. Please check your credentials.');
         }
     });
 }
@@ -236,6 +240,7 @@ if (window.location.pathname.includes('admin.html')) {
 function loadAdminDashboard() {
     updateStats();
     displayBookings();
+    displayMobileBookings();
 }
 
 function updateStats() {
@@ -315,3 +320,229 @@ function clearAllBookings() {
         loadAdminDashboard();
     }
 }
+
+// Mobile menu toggle function
+function toggleMobileMenu() {
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (mobileMenu) {
+        mobileMenu.classList.toggle('hidden');
+    }
+}
+
+// Display mobile bookings cards
+function displayMobileBookings() {
+    const container = document.getElementById('mobileBookingsContainer');
+    
+    if (!container) return;
+    
+    if (bookings.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                <i class="fas fa-inbox text-4xl mb-2"></i>
+                <p>No bookings yet</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Sort bookings by date and time (newest first)
+    const sortedBookings = [...bookings].sort((a, b) => {
+        const dateA = new Date(a.date + 'T' + a.time);
+        const dateB = new Date(b.date + 'T' + b.time);
+        return dateB - dateA;
+    });
+
+    container.innerHTML = sortedBookings.map(booking => `
+        <div class="booking-card">
+            <div class="booking-card-header">
+                <div class="flex items-center">
+                    <i class="fas fa-user text-indigo-600 mr-2"></i>
+                    <span class="font-semibold text-gray-900">${booking.name}</span>
+                </div>
+                <button onclick="deleteBooking(${booking.id})" class="text-red-600 hover:text-red-800 p-2">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="booking-card-content">
+                <div class="booking-field">
+                    <span class="booking-field-label">ID:</span>
+                    <span class="booking-field-value">#${booking.id}</span>
+                </div>
+                <div class="booking-field">
+                    <span class="booking-field-label">Date:</span>
+                    <span class="booking-field-value">${formatDate(booking.date)}</span>
+                </div>
+                <div class="booking-field">
+                    <span class="booking-field-label">Time:</span>
+                    <span class="booking-field-value text-indigo-600 font-semibold">${formatTime(booking.time)}</span>
+                </div>
+                <div class="booking-field">
+                    <span class="booking-field-label">People:</span>
+                    <span class="booking-field-value">${booking.numberOfPeople}</span>
+                </div>
+                <div class="booking-field">
+                    <span class="booking-field-label">Email:</span>
+                    <span class="booking-field-value">${booking.email}</span>
+                </div>
+                <div class="booking-field">
+                    <span class="booking-field-label">Phone:</span>
+                    <span class="booking-field-value">${booking.phone}</span>
+                </div>
+                <div class="booking-field">
+                    <span class="booking-field-label">Details:</span>
+                    <span class="booking-field-value">${booking.details}</span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Search bookings by email or phone
+function searchBookings() {
+    const email = document.getElementById('searchEmail').value.trim().toLowerCase();
+    const phone = document.getElementById('searchPhone').value.trim();
+    
+    if (!email && !phone) {
+        alert('Please enter either an email address or phone number to search.');
+        return;
+    }
+    
+    // Filter bookings based on email or phone
+    const userBookings = bookings.filter(booking => {
+        const emailMatch = email && booking.email.toLowerCase() === email;
+        const phoneMatch = phone && booking.phone.includes(phone);
+        return emailMatch || phoneMatch;
+    });
+    
+    displayUserBookings(userBookings);
+}
+
+// Display user bookings
+function displayUserBookings(userBookings) {
+    const searchResults = document.getElementById('searchResults');
+    const noResults = document.getElementById('noResults');
+    const initialState = document.getElementById('initialState');
+    const tableBody = document.getElementById('userBookingsTable');
+    const cardsContainer = document.getElementById('userBookingsCards');
+    
+    // Hide initial state
+    initialState.classList.add('hidden');
+    
+    if (userBookings.length === 0) {
+        searchResults.classList.add('hidden');
+        noResults.classList.remove('hidden');
+        return;
+    }
+    
+    // Show results
+    noResults.classList.add('hidden');
+    searchResults.classList.remove('hidden');
+    
+    // Sort bookings by date and time (newest first)
+    const sortedBookings = [...userBookings].sort((a, b) => {
+        const dateA = new Date(a.date + 'T' + a.time);
+        const dateB = new Date(b.date + 'T' + b.time);
+        return dateB - dateA;
+    });
+    
+    // Populate desktop table
+    tableBody.innerHTML = sortedBookings.map(booking => {
+        const bookingDate = new Date(booking.date + 'T' + booking.time);
+        const now = new Date();
+        const isPast = bookingDate < now;
+        const status = isPast ? 'Completed' : 'Upcoming';
+        const statusClass = isPast ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800';
+        
+        return `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${booking.id}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${formatDate(booking.date)}<br>
+                    <span class="text-indigo-600 font-semibold">${formatTime(booking.time)}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${booking.numberOfPeople}</td>
+                <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">${booking.details}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
+                        ${status}
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // Populate mobile cards
+    cardsContainer.innerHTML = sortedBookings.map(booking => {
+        const bookingDate = new Date(booking.date + 'T' + booking.time);
+        const now = new Date();
+        const isPast = bookingDate < now;
+        const status = isPast ? 'Completed' : 'Upcoming';
+        const statusClass = isPast ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800';
+        
+        return `
+            <div class="booking-card">
+                <div class="booking-card-header">
+                    <div class="flex items-center">
+                        <i class="fas fa-calendar text-indigo-600 mr-2"></i>
+                        <span class="font-semibold text-gray-900">Booking #${booking.id}</span>
+                    </div>
+                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
+                        ${status}
+                    </span>
+                </div>
+                <div class="booking-card-content">
+                    <div class="booking-field">
+                        <span class="booking-field-label">Name:</span>
+                        <span class="booking-field-value">${booking.name}</span>
+                    </div>
+                    <div class="booking-field">
+                        <span class="booking-field-label">Date:</span>
+                        <span class="booking-field-value">${formatDate(booking.date)}</span>
+                    </div>
+                    <div class="booking-field">
+                        <span class="booking-field-label">Time:</span>
+                        <span class="booking-field-value text-indigo-600 font-semibold">${formatTime(booking.time)}</span>
+                    </div>
+                    <div class="booking-field">
+                        <span class="booking-field-label">People:</span>
+                        <span class="booking-field-value">${booking.numberOfPeople}</span>
+                    </div>
+                    <div class="booking-field">
+                        <span class="booking-field-label">Email:</span>
+                        <span class="booking-field-value">${booking.email}</span>
+                    </div>
+                    <div class="booking-field">
+                        <span class="booking-field-label">Phone:</span>
+                        <span class="booking-field-value">${booking.phone}</span>
+                    </div>
+                    <div class="booking-field">
+                        <span class="booking-field-label">Details:</span>
+                        <span class="booking-field-value">${booking.details}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Allow Enter key to trigger search
+document.addEventListener('DOMContentLoaded', function() {
+    const searchEmail = document.getElementById('searchEmail');
+    const searchPhone = document.getElementById('searchPhone');
+    
+    if (searchEmail) {
+        searchEmail.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchBookings();
+            }
+        });
+    }
+    
+    if (searchPhone) {
+        searchPhone.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchBookings();
+            }
+        });
+    }
+});

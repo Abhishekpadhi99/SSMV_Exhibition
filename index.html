@@ -19,62 +19,80 @@
     <div class="relative z-10">
     <!-- Navigation -->
     <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto nav-container px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
                 <div class="flex items-center">
-                    <div class="h-10 w-10 mr-3 bg-indigo-600 rounded-lg flex items-center justify-center">
-                        <img src="ssmv logo.jpg" alt="">
+                    <div class="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3 bg-indigo-600 rounded-lg flex items-center justify-center">
+                        <img src="ssmv logo.jpg" alt="SSMV Logo" class="h-6 w-6 sm:h-8 sm:w-8 rounded">
                     </div>
-                    <span class="text-xl font-bold text-gray-800">SSMV</span>
+                    <span class="nav-brand text-lg sm:text-xl font-bold text-gray-800">SSMV</span>
                 </div>
-                <div class="hidden md:flex space-x-8">
+                
+                <!-- Desktop Menu -->
+                <div class="desktop-menu hidden md:flex space-x-8">
                     <a href="index.html" class="text-indigo-600 font-semibold">Home</a>
                     <a href="booking.html" class="text-gray-600 hover:text-indigo-600">Book Now</a>
+                    <a href="my-bookings.html" class="text-gray-600 hover:text-indigo-600">My Bookings</a>
                     <a href="login.html" class="text-gray-600 hover:text-indigo-600">Admin</a>
+                </div>
+                
+                <!-- Mobile Menu Button -->
+                <button class="mobile-menu md:hidden p-2" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars text-gray-600 text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Mobile Menu -->
+            <div id="mobileMenu" class="mobile-menu hidden md:hidden pb-4">
+                <div class="flex flex-col space-y-2">
+                    <a href="index.html" class="text-indigo-600 font-semibold py-2 px-4 rounded">Home</a>
+                    <a href="booking.html" class="text-gray-600 hover:text-indigo-600 py-2 px-4 rounded">Book Now</a>
+                    <a href="my-bookings.html" class="text-gray-600 hover:text-indigo-600 py-2 px-4 rounded">My Bookings</a>
+                    <a href="login.html" class="text-gray-600 hover:text-indigo-600 py-2 px-4 rounded">Admin</a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
         <div class="text-center">
-            <h1 class="text-5xl md:text-6xl font-bold text-white mb-6 animate-fade-in drop-shadow-lg">
+            <h1 class="hero-title text-3xl sm:text-5xl md:text-6xl font-bold text-white mb-4 sm:mb-6 animate-fade-in drop-shadow-lg">
                 Welcome to <span class="text-yellow-300">SSMV</span>
             </h1>
-            <p class="text-xl md:text-2xl text-white mb-12 max-w-3xl mx-auto drop-shadow-md">
+            <p class="hero-subtitle text-lg sm:text-xl md:text-2xl text-white mb-8 sm:mb-12 max-w-3xl mx-auto drop-shadow-md px-4">
                 Schedule your appointments effortlessly. Choose your preferred date and time, 
                 and we'll take care of the rest.
             </p>
-            <a href="booking.html" class="inline-block bg-indigo-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700 transform hover:scale-105 transition duration-300 shadow-lg">
+            <a href="booking.html" class="inline-block bg-indigo-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-indigo-700 transform hover:scale-105 transition duration-300 shadow-lg">
                 <i class="fas fa-calendar-plus mr-2"></i>Book Appointment
             </a>
         </div>
 
         <!-- Features Section -->
-        <div class="grid md:grid-cols-3 gap-8 mt-20">
-            <a href="booking.html" class="bg-white p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition duration-300 cursor-pointer hover:shadow-2xl">
-                <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-clock text-indigo-600 text-2xl"></i>
+        <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8 mt-12 sm:mt-20">
+            <a href="booking.html" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition duration-300 cursor-pointer hover:shadow-2xl">
+                <div class="bg-indigo-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <i class="fas fa-clock text-indigo-600 text-xl sm:text-2xl"></i>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Flexible Scheduling</h3>
-                <p class="text-gray-600">Choose from available time slots that work best for you</p>
+                <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2">Flexible Scheduling</h3>
+                <p class="text-gray-600 text-sm sm:text-base">Choose from available time slots that work best for you</p>
                 <p class="text-indigo-600 font-semibold mt-3 text-sm">Click to book now →</p>
             </a>
-            <a href="booking.html" class="bg-white p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition duration-300 cursor-pointer hover:shadow-2xl">
-                <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-bell text-indigo-600 text-2xl"></i>
+            <a href="booking.html" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition duration-300 cursor-pointer hover:shadow-2xl">
+                <div class="bg-indigo-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <i class="fas fa-bell text-indigo-600 text-xl sm:text-2xl"></i>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Instant Confirmation</h3>
-                <p class="text-gray-600">Get immediate confirmation of your booking</p>
+                <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2">Instant Confirmation</h3>
+                <p class="text-gray-600 text-sm sm:text-base">Get immediate confirmation of your booking</p>
                 <p class="text-indigo-600 font-semibold mt-3 text-sm">Click to book now →</p>
             </a>
-            <a href="booking.html" class="bg-white p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition duration-300 cursor-pointer hover:shadow-2xl">
-                <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-mobile-alt text-indigo-600 text-2xl"></i>
+            <a href="booking.html" class="bg-white p-6 sm:p-8 rounded-xl shadow-lg text-center transform hover:scale-105 transition duration-300 cursor-pointer hover:shadow-2xl sm:col-span-2 md:col-span-1">
+                <div class="bg-indigo-100 w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <i class="fas fa-mobile-alt text-indigo-600 text-xl sm:text-2xl"></i>
                 </div>
-                <h3 class="text-xl font-bold text-gray-800 mb-2">Mobile Friendly</h3>
-                <p class="text-gray-600">Book appointments on any device, anywhere</p>
+                <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2">Mobile Friendly</h3>
+                <p class="text-gray-600 text-sm sm:text-base">Book appointments on any device, anywhere</p>
                 <p class="text-indigo-600 font-semibold mt-3 text-sm">Click to book now →</p>
             </a>
         </div>
@@ -84,7 +102,7 @@
     <!-- End Content Wrapper -->
 
     <!-- Floating Contact Button -->
-    <a href="tel:7755879731" class="fixed bottom-6 right-6 bg-green-500 text-white px-6 py-4 rounded-full shadow-2xl hover:bg-green-600 transform hover:scale-110 transition duration-300 flex items-center gap-3 z-50">
+    <a href="tel:7755879731" class="contact-button fixed bottom-6 right-6 bg-green-500 text-white px-6 py-4 rounded-full shadow-2xl hover:bg-green-600 transform hover:scale-110 transition duration-300 flex items-center gap-3 z-50">
         <i class="fas fa-phone-alt text-xl animate-pulse"></i>
         <span class="font-semibold">Need Help? Call: 7755879731</span>
     </a>
