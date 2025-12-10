@@ -91,9 +91,9 @@ class BookingDatabase {
                 console.log('❌ Online save error:', onlineError.message);
             }
 
-            // Even if online save fails, return true since local save worked
+            // Even if online save fails, return false since local save worked
             console.log('📱 Bookings saved locally, will sync when online');
-            return true;
+            return false;
 
         } catch (error) {
             console.error('Error saving bookings:', error);
