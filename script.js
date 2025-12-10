@@ -34,7 +34,7 @@ class BookingDatabase {
         try {
             console.log('Fetching bookings from global database...');
 
-            // Try multiple accessible database services
+            // Try GitHub Gist for real bookings only
             const databases = [
                 // GitHub Gist (most reliable and free)
                 {
@@ -42,25 +42,6 @@ class BookingDatabase {
                     parser: (data) => {
                         const content = data.files['bookings.json']?.content;
                         return content ? JSON.parse(content) : [];
-                    }
-                },
-                // JSONPlaceholder as fallback (read-only but always works)
-                {
-                    url: 'https://jsonplaceholder.typicode.com/posts',
-                    parser: (data) => {
-                        // Convert posts to booking format for demo
-                        return data.slice(0, 3).map((post, index) => ({
-                            id: post.id,
-                            name: `Demo User ${index + 1}`,
-                            email: `user${index + 1}@example.com`,
-                            phone: `+1234567890${index}`,
-                            date: new Date().toISOString().split('T')[0],
-                            time: `${10 + index}:00`,
-                            numberOfPeople: index + 2,
-                            details: post.title,
-                            bookedAt: new Date().toISOString(),
-                            status: 'confirmed'
-                        }));
                     }
                 }
             ];
