@@ -100,7 +100,7 @@ class BookingDatabase {
         try {
             const bookings = this.getAllBookings();
             const today = new Date().toISOString().split('T')[0];
-            
+
             return {
                 total: bookings.length,
                 today: bookings.filter(b => b.date === today).length,
@@ -133,15 +133,15 @@ function isLoggedIn() {
 // Login function
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
-    loginForm.addEventListener('submit', function(e) {
+    loginForm.addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value.trim();
         const rememberMe = document.getElementById('rememberMe').checked;
-        
+
         console.log('Login attempt:', { username, password }); // Debug log
-        
+
         if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
             // Successful login
             localStorage.setItem('adminLoggedIn', 'true');
@@ -164,7 +164,7 @@ function showError(message) {
     const errorText = document.getElementById('errorText');
     errorText.textContent = message;
     errorDiv.classList.remove('hidden');
-    
+
     setTimeout(() => {
         errorDiv.classList.add('hidden');
     }, 3000);
@@ -174,7 +174,7 @@ function showError(message) {
 function togglePassword() {
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eyeIcon');
-    
+
     if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
         eyeIcon.classList.remove('fa-eye');
@@ -199,7 +199,7 @@ if (dateInput) {
     const today = new Date().toISOString().split('T')[0];
     dateInput.setAttribute('min', today);
 
-    dateInput.addEventListener('change', function() {
+    dateInput.addEventListener('change', function () {
         const selectedDate = new Date(this.value + 'T00:00:00');
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const dayOfWeek = days[selectedDate.getDay()];
@@ -242,9 +242,9 @@ function sendConfirmationEmail(data) {
     // Send email using EmailJS
     if (typeof emailjs !== 'undefined') {
         emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-            .then(function(response) {
+            .then(function (response) {
                 console.log('Email sent successfully!', response.status, response.text);
-            }, function(error) {
+            }, function (error) {
                 console.log('Failed to send email:', error);
             });
     }
@@ -253,7 +253,7 @@ function sendConfirmationEmail(data) {
 // Handle booking form submission
 const bookingForm = document.getElementById('bookingForm');
 if (bookingForm) {
-    bookingForm.addEventListener('submit', function(e) {
+    bookingForm.addEventListener('submit', function (e) {
         e.preventDefault();
 
         // Get form data
@@ -269,17 +269,17 @@ if (bookingForm) {
 
         // Save to database
         const newBooking = bookingDB.addBooking(formData);
-        
+
         if (newBooking) {
             // Update local bookings array
             bookings = bookingDB.getAllBookings();
-            
+
             // Send confirmation email
             sendConfirmationEmail(newBooking);
 
             // Show confirmation modal
             showConfirmation(newBooking);
-            
+
             console.log('Booking saved successfully:', newBooking);
         } else {
             alert('Error saving booking. Please try again.');
@@ -383,11 +383,11 @@ function loadAdminDashboard() {
 function updateStats() {
     // Get fresh stats from database
     const stats = bookingDB.getStats();
-    
+
     const totalBookingsElement = document.getElementById('totalBookings');
     const todayBookingsElement = document.getElementById('todayBookings');
     const totalPeopleElement = document.getElementById('totalPeople');
-    
+
     if (totalBookingsElement) totalBookingsElement.textContent = stats.total;
     if (todayBookingsElement) todayBookingsElement.textContent = stats.today;
     if (totalPeopleElement) totalPeopleElement.textContent = stats.totalPeople;
@@ -395,8 +395,20 @@ function updateStats() {
 
 function displayBookings() {
     const tbody = document.getElementById('bookingsTableBody');
-    
+
+    // Debug logging
+    console.log('displayBookings called');
+    console.log('tbody element:', tbody);
+    console.log('bookings array:', bookings);
+    console.log('bookings length:', bookings.length);
+
+    if (!tbody) {
+        console.error('bookingsTableBody element not found!');
+        return;
+    }
+
     if (bookings.length === 0) {
+        console.log('No bookings found, showing empty message');
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" class="px-6 py-12 text-center text-gray-500">
@@ -479,9 +491,9 @@ function toggleMobileMenu() {
 // Display mobile bookings cards
 function displayMobileBookings() {
     const container = document.getElementById('mobileBookingsContainer');
-    
+
     if (!container) return;
-    
+
     if (bookings.length === 0) {
         container.innerHTML = `
             <div class="text-center text-gray-500 py-8">
@@ -548,15 +560,15 @@ function displayMobileBookings() {
 function searchBookings() {
     const email = document.getElementById('searchEmail').value.trim();
     const phone = document.getElementById('searchPhone').value.trim();
-    
+
     if (!email && !phone) {
         alert('Please enter either an email address or phone number to search.');
         return;
     }
-    
+
     // Use database search function
     const userBookings = bookingDB.searchBookings(email, phone);
-    
+
     displayUserBookings(userBookings);
 }
 
@@ -567,27 +579,27 @@ function displayUserBookings(userBookings) {
     const initialState = document.getElementById('initialState');
     const tableBody = document.getElementById('userBookingsTable');
     const cardsContainer = document.getElementById('userBookingsCards');
-    
+
     // Hide initial state
     initialState.classList.add('hidden');
-    
+
     if (userBookings.length === 0) {
         searchResults.classList.add('hidden');
         noResults.classList.remove('hidden');
         return;
     }
-    
+
     // Show results
     noResults.classList.add('hidden');
     searchResults.classList.remove('hidden');
-    
+
     // Sort bookings by date and time (newest first)
     const sortedBookings = [...userBookings].sort((a, b) => {
         const dateA = new Date(a.date + 'T' + a.time);
         const dateB = new Date(b.date + 'T' + b.time);
         return dateB - dateA;
     });
-    
+
     // Populate desktop table
     tableBody.innerHTML = sortedBookings.map(booking => {
         const bookingDate = new Date(booking.date + 'T' + booking.time);
@@ -595,7 +607,7 @@ function displayUserBookings(userBookings) {
         const isPast = bookingDate < now;
         const status = isPast ? 'Completed' : 'Upcoming';
         const statusClass = isPast ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800';
-        
+
         return `
             <tr class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${booking.id}</td>
@@ -613,7 +625,7 @@ function displayUserBookings(userBookings) {
             </tr>
         `;
     }).join('');
-    
+
     // Populate mobile cards
     cardsContainer.innerHTML = sortedBookings.map(booking => {
         const bookingDate = new Date(booking.date + 'T' + booking.time);
@@ -621,7 +633,7 @@ function displayUserBookings(userBookings) {
         const isPast = bookingDate < now;
         const status = isPast ? 'Completed' : 'Upcoming';
         const statusClass = isPast ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800';
-        
+
         return `
             <div class="booking-card">
                 <div class="booking-card-header">
@@ -669,20 +681,20 @@ function displayUserBookings(userBookings) {
 }
 
 // Allow Enter key to trigger search
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const searchEmail = document.getElementById('searchEmail');
     const searchPhone = document.getElementById('searchPhone');
-    
+
     if (searchEmail) {
-        searchEmail.addEventListener('keypress', function(e) {
+        searchEmail.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 searchBookings();
             }
         });
     }
-    
+
     if (searchPhone) {
-        searchPhone.addEventListener('keypress', function(e) {
+        searchPhone.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 searchBookings();
             }
@@ -691,9 +703,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Debug: Log current bookings count on page load
     console.log('Page loaded. Current bookings in database:', bookingDB.getAllBookings().length);
-    
+
     // Add a global function to check database status (for debugging)
-    window.checkBookingDatabase = function() {
+    window.checkBookingDatabase = function () {
         const allBookings = bookingDB.getAllBookings();
         console.log('=== BOOKING DATABASE STATUS ===');
         console.log('Total bookings:', allBookings.length);
@@ -703,14 +715,52 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('===============================');
         return allBookings;
     };
-    
+
     // Add a global function to manually refresh admin dashboard (for debugging)
-    window.refreshAdminDashboard = function() {
+    window.refreshAdminDashboard = function () {
         if (typeof loadAdminDashboard === 'function') {
             loadAdminDashboard();
             console.log('Admin dashboard refreshed manually');
         } else {
             console.log('Admin dashboard function not available on this page');
+        }
+    };
+
+    // Add a test function to create a sample booking (for debugging)
+    window.createTestBooking = function () {
+        const testBooking = {
+            date: '2024-12-15',
+            time: '14:00',
+            numberOfPeople: '2',
+            details: 'Test booking for debugging',
+            name: 'Test User',
+            email: 'test@example.com',
+            phone: '9926633224'
+        };
+
+        const result = bookingDB.addBooking(testBooking);
+        console.log('Test booking created:', result);
+
+        // Refresh bookings array
+        bookings = bookingDB.getAllBookings();
+        console.log('Updated bookings array:', bookings);
+
+        // If on admin page, refresh dashboard
+        if (typeof loadAdminDashboard === 'function') {
+            loadAdminDashboard();
+        }
+
+        return result;
+    };
+
+    // Add function to clear test data
+    window.clearTestData = function () {
+        bookingDB.clearAllBookings();
+        bookings = bookingDB.getAllBookings();
+        console.log('All bookings cleared');
+
+        if (typeof loadAdminDashboard === 'function') {
+            loadAdminDashboard();
         }
     };
 });
