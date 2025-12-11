@@ -1,211 +1,72 @@
-/* Custom Animations */
+/* ===============================
+   Animations
+================================ */
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in {
-    animation: fadeIn 1s ease-out;
-}
-
-/* Modal Animation */
-.modal-content {
-    animation: modalSlideIn 0.3s ease-out;
-}
+.animate-fade-in { animation: fadeIn 0.8s ease-out; }
 
 @keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: scale(0.9) translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
 }
+.modal-content { animation: modalSlideIn 0.25s ease-out; max-height: 90vh; overflow-y: auto; }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-    width: 10px;
-}
+/* Scrollbar (Desktop only) */
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #888; border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
 
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
+/* Global Improvements */
+html { scroll-behavior: smooth; }
+body { padding-bottom: 90px; }
 
-::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 5px;
-}
+input:focus, select:focus, textarea:focus { outline: none; }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
+button, a, input, textarea, select { transition: all 0.2s ease-in-out; }
 
-/* Input Focus Effects */
-input:focus, select:focus, textarea:focus {
-    outline: none;
-}
+/* Navigation */
+.nav-container { max-width: 1280px; margin: 0 auto; }
 
-/* Smooth Transitions */
-* {
-    transition: all 0.2s ease-in-out;
-}
+/* Mobile Menu */
+.mobile-menu { display: none; }
+@media (max-width: 768px) { .desktop-menu { display: none; } .mobile-menu { display: block; } }
 
-/* Mobile Navigation */
-.mobile-menu {
-    display: none;
-}
-
-@media (max-width: 768px) {
-    .mobile-menu {
-        display: block;
-    }
-    
-    .desktop-menu {
-        display: none;
-    }
-    
-    .mobile-menu-open {
-        display: block;
-    }
-}
-
-/* Mobile Hero Text */
+/* Hero Mobile Text */
 @media (max-width: 640px) {
-    .hero-title {
-        font-size: 2.5rem;
-        line-height: 1.1;
-    }
-    
-    .hero-subtitle {
-        font-size: 1.125rem;
-        line-height: 1.4;
-    }
+    .hero-title { font-size: 2.3rem; line-height: 1.1; }
+    .hero-subtitle { font-size: 1.1rem; line-height: 1.4; }
 }
 
-/* Mobile Form Improvements */
+/* Forms & Modals */
 @media (max-width: 768px) {
-    .form-container {
-        padding: 1.5rem;
-        margin: 1rem;
-    }
-    
-    .modal-content {
-        margin: 1rem;
-        padding: 1.5rem;
-    }
+    .form-container { padding: 1.25rem; margin: 0.75rem; }
+    .modal-content { padding: 1.25rem; margin: 0.75rem; }
 }
 
-/* Table Responsive - Card Layout for Mobile */
+/* Tables → Cards (Mobile) */
 @media (max-width: 768px) {
-    .desktop-table {
-        display: none;
-    }
-    
-    .mobile-cards {
-        display: block;
-    }
-    
-    .booking-card {
-        background: white;
-        border-radius: 0.75rem;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e5e7eb;
-    }
-    
-    .booking-card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.75rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .booking-card-content {
-        display: grid;
-        gap: 0.5rem;
-    }
-    
-    .booking-field {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 0.25rem 0;
-    }
-    
-    .booking-field-label {
-        font-weight: 600;
-        color: #374151;
-        min-width: 80px;
-        font-size: 0.875rem;
-    }
-    
-    .booking-field-value {
-        color: #111827;
-        text-align: right;
-        flex: 1;
-        font-size: 0.875rem;
-    }
+    .desktop-table { display: none; }
+    .mobile-cards { display: block; }
+    .booking-card { background: #fff; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
+    .booking-card-header { display: flex; justify-content: space-between; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
+    .booking-field { display: flex; justify-content: space-between; font-size: 0.875rem; margin: 0.25rem 0; }
+    .booking-field-label { font-weight: 600; color: #374151; }
+    .booking-field-value { text-align: right; color: #111827; }
 }
+@media (min-width: 769px) { .mobile-cards { display: none; } }
 
-@media (min-width: 769px) {
-    .mobile-cards {
-        display: none;
-    }
-    
-    .desktop-table {
-        display: table;
-    }
-}
+/* Stats (Admin Mobile) */
+@media (max-width: 640px) { .stats-grid { grid-template-columns: 1fr; gap: 1rem; } }
 
-/* Stats Cards Mobile */
-@media (max-width: 640px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-}
-
-/* Mobile Contact Button */
+/* Floating Call Button */
 @media (max-width: 768px) {
-    .contact-button span {
-        display: none;
-    }
-    .contact-button {
-        padding: 1rem;
-        width: 56px;
-        height: 56px;
-        justify-content: center;
-        bottom: 1rem;
-        right: 1rem;
-    }
+    .contact-button span { display: none; }
+    .contact-button { width: 56px; height: 56px; justify-content: center; padding: 0; }
 }
 
-/* Mobile Navigation Improvements */
-@media (max-width: 768px) {
-    .nav-container {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    
-    .nav-brand {
-        font-size: 1.125rem;
-    }
-}
-
-/* Print Styles */
-@media print {
-    nav, button, .contact-button {
-        display: none;
-    }
-}
+/* Print Mode */
+@media print { nav, button, .contact-button { display: none !important; } }

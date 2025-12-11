@@ -1,1120 +1,167 @@
-// Professional SSMV Booking Database Management System
-class SSMVBookingDatabase {
-    constructor() {
-        // Professional database configuration
-        this.databaseName = 'SSMV_BookingSystem';
-        this.version = 1;
-        this.localStorageKey = 'ssmv_professional_bookings';
-        this.syncKey = 'ssmv_sync_timestamp';
-        this.isOnline = navigator.onLine;
-        this.db = null;
-
-        // Professional API endpoints (replace with your actual backend)
-        this.apiEndpoints = {
-            base: 'https://api.ssmv-bookings.com', // Replace with your domain
-            bookings: '/api/v1/bookings',
-            sync: '/api/v1/sync',
-            stats: '/api/v1/stats'
-        };
-
-        this.init();
-    }
-
-    async init() {
-        console.log('🚀 Initializing SSMV Professional Booking System...');
-
-        // Initialize IndexedDB for professional local storage
-        await this.initIndexedDB();
-
-        // Initialize localStorage fallback
-        this.initLocalStorage();
-
-        // Setup network monitoring
-        this.setupNetworkMonitoring();
-
-        // Try to sync from professional backend
-        try {
-            await this.syncFromProfessionalBackend();
-            console.log('✅ Connected to SSMV Professional Database');
-        } catch (error) {
-            console.log('📱 Operating in offline mode - will sync when connected');
-        }
-    }
-
-    async initIndexedDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.databaseName, this.version);
-
-            request.onerror = () => {
-                console.log('IndexedDB not available, using localStorage');
-                resolve();
-            };
-
-            request.onsuccess = (event) => {
-                this.db = event.target.result;
-                console.log('✅ Professional IndexedDB initialized');
-                resolve();
-            };
-
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-
-                // Create bookings store
-                if (!db.objectStoreNames.contains('bookings')) {
-                    const bookingStore = db.createObjectStore('bookings', { keyPath: 'id' });
-                    bookingStore.createIndex('date', 'date', { unique: false });
-                    bookingStore.createIndex('email', 'email', { unique: false });
-                    bookingStore.createIndex('status', 'status', { unique: false });
-                }
-
-                // Create sync store for offline operations
-                if (!db.objectStoreNames.contains('sync_queue')) {
-                    db.createObjectStore('sync_queue', { keyPath: 'id', autoIncrement: true });
-                }
-            };
-        });
-    }
-
-    initLocalStorage() {
-        if (!localStorage.getItem(this.localStorageKey)) {
-            localStorage.setItem(this.localStorageKey, JSON.stringify([]));
-        }
-
-        // Initialize sync timestamp
-        if (!localStorage.getItem(this.syncKey)) {
-            localStorage.setItem(this.syncKey, new Date().toISOString());
-        }
-    }
-
-    setupNetworkMonitoring() {
-        window.addEventListener('online', () => {
-            this.isOnline = true;
-            console.log('🌐 Network connection restored - syncing data...');
-            this.syncFromProfessionalBackend();
-        });
-
-        window.addEventListener('offline', () => {
-            this.isOnline = false;
-            console.log('📱 Network offline - operating in local mode');
-        });
-    }
-
-    // Professional database operations
-    async getAllBookings() {
-        try {
-            console.log('📊 Fetching bookings from professional database...');
-
-            // Try professional backend first
-            if (this.isOnline) {
-                try {
-                    const bookings = await this.fetchFromProfessionalBackend();
-                    if (bookings) {
-                        await this.cacheBookings(bookings);
-                        return bookings;
-                    }
-                } catch (onlineError) {
-                    console.log('⚠️ Professional backend unavailable, using local cache');
-                }
-            }
-
-            // Fallback to local storage (IndexedDB or localStorage)
-            return await this.getLocalBookings();
-
-        } catch (error) {
-            console.error('❌ Error loading bookings:', error);
-            return [];
-        }
-    }
-
-    async fetchFromProfessionalBackend() {
-        // Professional backend integration
-        // In production, this would connect to your actual REST API
-        try {
-            // Simulate professional API call
-            const response = await fetch(`${this.apiEndpoints.base}${this.apiEndpoints.bookings}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer YOUR_API_TOKEN', // Replace with actual token
-                    'X-Client-Version': '1.0.0'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                console.log('✅ Data fetched from professional backend');
-                return data.bookings || [];
-            }
-        } catch (error) {
-            console.log('⚠️ Professional backend unavailable, using local storage');
-        }
-
-        // Fallback to professional local storage
-        const localData = localStorage.getItem(this.localStorageKey);
-        return localData ? JSON.parse(localData) : [];
-    }
-
-    async syncFromProfessionalBackend() {
-        try {
-            const bookings = await this.fetchFromProfessionalBackend();
-            await this.cacheBookings(bookings);
-            return bookings;
-        } catch (error) {
-            console.error('Professional sync failed:', error);
-            return await this.getLocalBookings();
-        }
-    }
-
-    async getLocalBookings() {
-        // Try IndexedDB first, then localStorage
-        if (this.db) {
-            return await this.getBookingsFromIndexedDB();
-        } else {
-            const localData = localStorage.getItem(this.localStorageKey);
-            const bookings = localData ? JSON.parse(localData) : [];
-            console.log(`📱 Retrieved ${bookings.length} bookings from local storage`);
-            return bookings;
-        }
-    }
-
-    async getBookingsFromIndexedDB() {
-        return new Promise((resolve) => {
-            const transaction = this.db.transaction(['bookings'], 'readonly');
-            const store = transaction.objectStore('bookings');
-            const request = store.getAll();
-
-            request.onsuccess = () => {
-                const bookings = request.result || [];
-                console.log(`💾 Retrieved ${bookings.length} bookings from IndexedDB`);
-                resolve(bookings);
-            };
-
-            request.onerror = () => {
-                console.log('IndexedDB read failed, using localStorage');
-                const localData = localStorage.getItem(this.localStorageKey);
-                resolve(localData ? JSON.parse(localData) : []);
-            };
-        });
-    }
-
-    async cacheBookings(bookings) {
-        // Cache in both IndexedDB and localStorage
-        localStorage.setItem(this.localStorageKey, JSON.stringify(bookings));
-
-        if (this.db) {
-            const transaction = this.db.transaction(['bookings'], 'readwrite');
-            const store = transaction.objectStore('bookings');
-
-            // Clear existing data
-            await store.clear();
-
-            // Add new bookings
-            bookings.forEach(booking => store.add(booking));
-        }
-
-        // Update sync timestamp
-        localStorage.setItem(this.syncKey, new Date().toISOString());
-    }
-
-    // Save bookings to global database
-    async saveToOnline(bookings) {
-        try {
-            console.log('Saving bookings to global database...');
-
-            // Always save locally first as backup
-            localStorage.setItem(this.localStorageKey, JSON.stringify(bookings));
-
-            // Try multiple accessible save methods
-            const saveMethods = [
-                // Method 1: GitHub Gist (most reliable)
-                async () => {
-                    const gistData = {
-                        description: "SSMV Booking System Database",
-                        public: false,
-                        files: {
-                            "bookings.json": {
-                                content: JSON.stringify(bookings, null, 2)
-                            }
-                        }
-                    };
-
-                    const response = await fetch('https://api.github.com/gists/676bb5e5ad19ca34f8c90d12', {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/vnd.github.v3+json'
-                        },
-                        body: JSON.stringify(gistData)
-                    });
-
-                    return response.ok;
-                },
-
-                // Method 2: Simple POST to a webhook service (always works for demo)
-                async () => {
-                    const response = await fetch('https://httpbin.org/post', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            timestamp: new Date().toISOString(),
-                            bookings: bookings,
-                            source: 'ssmv-booking-system'
-                        })
-                    });
-
-                    return response.ok;
-                }
-            ];
-
-            // Try each save method
-            for (let i = 0; i < saveMethods.length; i++) {
-                try {
-                    const success = await saveMethods[i]();
-                    if (success) {
-                        console.log(`✅ Bookings saved to global database successfully (method ${i + 1})`);
-                        return true;
-                    }
-                } catch (methodError) {
-                    console.log(`❌ Save method ${i + 1} failed:`, methodError.message);
-                    continue;
-                }
-            }
-
-            // If all methods fail, still return true for local save
-            console.log('📱 Bookings saved locally, global sync will retry later');
-            return true;
-
-        } catch (error) {
-            console.error('Error saving bookings:', error);
-            return true; // Return true since local save worked
-        }
-    }
-
-    // Sync from online database
-    async syncFromOnline() {
-        try {
-            const onlineBookings = await this.getAllBookings();
-            return onlineBookings;
-        } catch (error) {
-            console.error('Error syncing from online database:', error);
-            return [];
-        }
-    }
-
-    // Add a new booking
-    async addBooking(bookingData) {
-        try {
-            const bookings = await this.getAllBookings();
-            const newBooking = {
-                id: Date.now() + Math.random(), // More unique ID
-                ...bookingData,
-                bookedAt: new Date().toISOString(),
-                status: 'confirmed'
-            };
-            bookings.push(newBooking);
-            await this.saveToOnline(bookings);
-            console.log('Booking added successfully:', newBooking);
-            return newBooking;
-        } catch (error) {
-            console.error('Error adding booking:', error);
-            return null;
-        }
-    }
-
-    // Delete a booking by ID
-    async deleteBooking(id) {
-        try {
-            const bookings = await this.getAllBookings();
-            const filteredBookings = bookings.filter(booking => booking.id != id);
-            await this.saveToOnline(filteredBookings);
-            console.log('Booking deleted successfully:', id);
-            return true;
-        } catch (error) {
-            console.error('Error deleting booking:', error);
-            return false;
-        }
-    }
-
-    // Clear all bookings
-    async clearAllBookings() {
-        try {
-            await this.saveToOnline([]);
-            console.log('All bookings cleared successfully');
-            return true;
-        } catch (error) {
-            console.error('Error clearing bookings:', error);
-            return false;
-        }
-    }
-
-    // Search bookings by email or phone
-    async searchBookings(email, phone) {
-        try {
-            const bookings = await this.getAllBookings();
-            return bookings.filter(booking => {
-                const emailMatch = email && booking.email.toLowerCase() === email.toLowerCase();
-                const phoneMatch = phone && booking.phone.includes(phone);
-                return emailMatch || phoneMatch;
-            });
-        } catch (error) {
-            console.error('Error searching bookings:', error);
-            return [];
-        }
-    }
-
-    // Get booking statistics
-    async getStats() {
-        try {
-            const bookings = await this.getAllBookings();
-            const today = new Date().toISOString().split('T')[0];
-
-            return {
-                total: bookings.length,
-                today: bookings.filter(b => b.date === today).length,
-                totalPeople: bookings.reduce((sum, b) => sum + parseInt(b.numberOfPeople || 0), 0)
-            };
-        } catch (error) {
-            console.error('Error getting stats:', error);
-            return { total: 0, today: 0, totalPeople: 0 };
-        }
-    }
-}
-
-// Initialize the professional database
-const bookingDB = new SSMVBookingDatabase();
-
-// Initialize bookings from database (for backward compatibility)
-let bookings = bookingDB.getAllBookings();
-
-// Admin credentials (in production, this should be handled server-side)
-const ADMIN_CREDENTIALS = {
-    username: 'kshatriya302',
-    password: '0978'
+/* ============================================================
+   FIREBASE CONFIG
+============================================================ */
+const firebaseConfig = {
+    apiKey: "AIzaSyD6FGRcTR199KeG6VCT0_l5Y_dMzPLa7lc",
+    authDomain: "ssmv-booking-1bd5a.firebaseapp.com",
+    projectId: "ssmv-booking-1bd5a",
+    storageBucket: "ssmv-booking-1bd5a.firebasestorage.app",
+    messagingSenderId: "325552070962",
+    appId: "1:325552070962:web:1e1472e0001d09003b372b"
 };
 
-// Check if user is logged in
-function isLoggedIn() {
-    return localStorage.getItem('adminLoggedIn') === 'true';
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
 }
+const db = firebase.firestore();
+const BOOKINGS = db.collection('bookings');
 
-// Login function
-const loginForm = document.getElementById('loginForm');
-if (loginForm) {
-    loginForm.addEventListener('submit', function (e) {
-        e.preventDefault();
+/* ============================================================
+   LOCAL STORAGE (Hybrid Mode)
+============================================================ */
+const STORAGE_KEY = 'ssmv_booking_local';
+function readLocal(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }catch(e){ return []; } }
+function writeLocal(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+function newLocalId(){ return Date.now()+Math.floor(Math.random()*9999); }
 
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
-        const rememberMe = document.getElementById('rememberMe').checked;
+/* ============================================================
+   UTILITIES
+============================================================ */
+function formatDate(d){ if(!d) return ''; const obj=new Date(d+'T00:00:00'); const M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return `${M[obj.getMonth()]} ${obj.getDate()}, ${obj.getFullYear()}`; }
+function formatTime(time){ if(!time) return ''; const [h,m]=time.split(':').map(Number); const am=h>=12?'PM':'AM'; const hour=h%12||12; return `${hour}:${String(m).padStart(2,'0')} ${am}`; }
 
-        console.log('Login attempt:', { username, password }); // Debug log
-
-        if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-            // Successful login
-            localStorage.setItem('adminLoggedIn', 'true');
-            if (rememberMe) {
-                localStorage.setItem('rememberAdmin', 'true');
-            }
-            console.log('Login successful, redirecting...'); // Debug log
-            window.location.href = 'admin.html';
-        } else {
-            // Failed login
-            console.log('Login failed - incorrect credentials'); // Debug log
-            showError('Invalid username or password. Please check your credentials.');
-        }
-    });
-}
-
-// Show error message
-function showError(message) {
-    const errorDiv = document.getElementById('errorMessage');
-    const errorText = document.getElementById('errorText');
-    errorText.textContent = message;
-    errorDiv.classList.remove('hidden');
-
-    setTimeout(() => {
-        errorDiv.classList.add('hidden');
-    }, 3000);
-}
-
-// Toggle password visibility
-function togglePassword() {
-    const passwordInput = document.getElementById('password');
-    const eyeIcon = document.getElementById('eyeIcon');
-
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        eyeIcon.classList.remove('fa-eye');
-        eyeIcon.classList.add('fa-eye-slash');
-    } else {
-        passwordInput.type = 'password';
-        eyeIcon.classList.remove('fa-eye-slash');
-        eyeIcon.classList.add('fa-eye');
-    }
-}
-
-// Logout function
-function logout() {
-    localStorage.removeItem('adminLoggedIn');
-    window.location.href = 'login.html';
-}
-
-// Date picker - show day of week
-const dateInput = document.getElementById('appointmentDate');
-if (dateInput) {
-    // Set minimum date to today
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.setAttribute('min', today);
-
-    dateInput.addEventListener('change', function () {
-        const selectedDate = new Date(this.value + 'T00:00:00');
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const dayOfWeek = days[selectedDate.getDay()];
-        document.getElementById('dayOfWeek').textContent = `Selected day: ${dayOfWeek}`;
-    });
-}
-
-// EmailJS Configuration
-// Initialize EmailJS with your public key
-const EMAILJS_PUBLIC_KEY = 'YOUR_EMAILJS_PUBLIC_KEY'; // Replace with your EmailJS public key
-const EMAILJS_SERVICE_ID = 'YOUR_SERVICE_ID'; // Replace with your EmailJS service ID
-const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID'; // Replace with your EmailJS template ID
-
-// Initialize EmailJS
-if (typeof emailjs !== 'undefined') {
-    emailjs.init(EMAILJS_PUBLIC_KEY);
-}
-
-// Send confirmation email
-function sendConfirmationEmail(data) {
-    // Format date and time for email
-    const dateObj = new Date(data.date + 'T00:00:00');
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const formattedDate = `${days[dateObj.getDay()]}, ${months[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
-    const timeFormatted = formatTime(data.time);
-
-    // Email template parameters
-    const templateParams = {
-        to_email: data.email,
-        to_name: data.name,
-        appointment_date: formattedDate,
-        appointment_time: timeFormatted,
-        number_of_people: data.numberOfPeople,
-        appointment_details: data.details,
-        phone: data.phone,
-        booking_id: data.id
-    };
-
-    // Send email using EmailJS
-    if (typeof emailjs !== 'undefined') {
-        emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams)
-            .then(function (response) {
-                console.log('Email sent successfully!', response.status, response.text);
-            }, function (error) {
-                console.log('Failed to send email:', error);
-            });
-    }
-}
-
-// Handle booking form submission
-const bookingForm = document.getElementById('bookingForm');
-if (bookingForm) {
-    bookingForm.addEventListener('submit', async function (e) {
-        e.preventDefault();
-
-        // Show loading state
-        const submitButton = e.target.querySelector('button[type="submit"]');
-        const originalText = submitButton.innerHTML;
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
-        submitButton.disabled = true;
-
-        try {
-            // Get form data
-            const formData = {
-                date: document.getElementById('appointmentDate').value,
-                time: document.getElementById('appointmentTime').value,
-                numberOfPeople: document.getElementById('numberOfPeople').value,
-                details: document.getElementById('appointmentDetails').value,
-                name: document.getElementById('fullName').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value
-            };
-
-            // Save to database
-            const newBooking = await bookingDB.addBooking(formData);
-
-            if (newBooking) {
-                // Update local bookings array
-                bookings = await bookingDB.getAllBookings();
-
-                // Send confirmation email
-                sendConfirmationEmail(newBooking);
-
-                // Show confirmation modal
-                showConfirmation(newBooking);
-
-                console.log('Booking saved successfully:', newBooking);
+/* ============================================================
+   ADMIN LOGIN (works after DOM ready)
+============================================================ */
+const ADMIN = { user:'kshatriya302', pass:'0978' };
+document.addEventListener('DOMContentLoaded', ()=>{
+    const form=document.getElementById('loginForm');
+    if(form){
+        form.addEventListener('submit', (e)=>{
+            e.preventDefault();
+            const u=document.getElementById('username').value.trim();
+            const p=document.getElementById('password').value.trim();
+            if(u===ADMIN.user && p===ADMIN.pass){
+                localStorage.setItem('adminLoggedIn','true');
+                window.location.href='admin.html';
             } else {
-                throw new Error('Failed to save booking');
+                alert('Invalid admin credentials');
             }
-        } catch (error) {
-            console.error('Error saving booking:', error);
-            alert('Error saving booking. Please try again.');
-        } finally {
-            // Restore button state
-            submitButton.innerHTML = originalText;
-            submitButton.disabled = false;
-        }
-    });
+        });
+    }
+});
+
+function isLoggedIn(){ return localStorage.getItem('adminLoggedIn')==='true'; }
+function logout(){ localStorage.removeItem('adminLoggedIn'); window.location.href='login.html'; }
+
+/* ============================================================
+   SYNC LOCAL -> CLOUD (upload unsynced)
+============================================================ */
+async function syncLocal(){
+    if(!navigator.onLine) return;
+    const items=readLocal(); let changed=false;
+    for(let b of items){
+        if(b.remoteId && !b.needsSync) continue;
+        try{
+            const payload={ name:b.name||'', email:b.email||'', phone:b.phone||'', date:b.date||'', time:b.time||'', numberOfPeople:b.numberOfPeople||'', details:b.details||'', localId:b.localId||newLocalId(), createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+            const res=await BOOKINGS.add(payload);
+            b.remoteId=res.id; b.needsSync=false; changed=true;
+        }catch(err){ console.warn('sync failed', err.message); }
+    }
+    if(changed) writeLocal(items);
 }
 
-// Show confirmation modal
-function showConfirmation(data) {
-    const modal = document.getElementById('confirmationModal');
-    const detailsDiv = document.getElementById('confirmationDetails');
+/* ============================================================
+   ADD BOOKING (hybrid)
+============================================================ */
+async function addBooking(data){
+    const localId=newLocalId();
+    const entry={ ...data, localId, needsSync:!navigator.onLine };
+    const local=readLocal(); local.push(entry); writeLocal(local);
+    if(navigator.onLine){
+        try{
+            const payload={ ...data, localId, createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+            const res=await BOOKINGS.add(payload);
+            const updated=readLocal().map(x=>{ if(x.localId===localId){ x.remoteId=res.id; x.needsSync=false; } return x; });
+            writeLocal(updated);
+            return { ok:true };
+        }catch(err){ console.warn('add remote failed', err.message); return { ok:false, reason:err.message }; }
+    }
+    return { ok:false, reason:'offline' };
+}
 
-    // Format date
-    const dateObj = new Date(data.date + 'T00:00:00');
-    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const formattedDate = `${days[dateObj.getDay()]}, ${months[dateObj.getMonth()]} ${dateObj.getDate()}, ${dateObj.getFullYear()}`;
+/* ============================================================
+   BOOKING FORM HANDLER
+============================================================ */
+document.addEventListener('DOMContentLoaded', ()=>{
+    const bookingForm=document.getElementById('bookingForm');
+    if(!bookingForm) return;
+    const dateInput=document.getElementById('appointmentDate');
+    if(dateInput){ dateInput.min=new Date().toISOString().split('T')[0]; dateInput.addEventListener('change', ()=>{ const day=new Date(dateInput.value+'T00:00:00').toLocaleDateString('en-US',{ weekday:'long' }); const dayEl=document.getElementById('dayOfWeek'); if(dayEl) dayEl.textContent=`Selected day: ${day}`; }); }
+    bookingForm.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const data={ name:(document.getElementById('fullName')||{}).value||'', email:(document.getElementById('email')||{}).value||'', phone:(document.getElementById('phone')||{}).value||'', date:(document.getElementById('appointmentDate')||{}).value||'', time:(document.getElementById('appointmentTime')||{}).value||'', numberOfPeople:(document.getElementById('numberOfPeople')||{}).value||'1', details:(document.getElementById('appointmentDetails')||{}).value||'' };
+        if(!data.name||!data.email||!data.date||!data.time){ alert('Please fill required fields (Name, Email, Date, Time).'); return; }
+        const submitBtn=bookingForm.querySelector('button[type="submit"]'); const origText=submitBtn?submitBtn.innerHTML:null; if(submitBtn){ submitBtn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...'; submitBtn.disabled=true; }
+        try{ const res=await addBooking(data); await syncLocal(); showConfirmation(data); if(!res.ok){ if(res.reason==='offline') alert('You are offline. Booking saved locally and will sync when online.'); } }catch(err){ console.error('Booking error', err); alert('Error saving booking. Try again.'); }finally{ if(submitBtn){ submitBtn.disabled=false; submitBtn.innerHTML=origText; } bookingForm.reset(); }
+    });
+});
 
-    // Format time
-    const timeFormatted = formatTime(data.time);
-
-    detailsDiv.innerHTML = `
-        <div class="flex items-center mb-3">
-            <i class="fas fa-user text-indigo-600 w-6"></i>
-            <span class="font-semibold text-gray-700 w-32">Name:</span>
-            <span class="text-gray-900">${data.name}</span>
-        </div>
-        <div class="flex items-center mb-3">
-            <i class="fas fa-calendar text-indigo-600 w-6"></i>
-            <span class="font-semibold text-gray-700 w-32">Date:</span>
-            <span class="text-gray-900">${formattedDate}</span>
-        </div>
-        <div class="flex items-center mb-3">
-            <i class="fas fa-clock text-indigo-600 w-6"></i>
-            <span class="font-semibold text-gray-700 w-32">Time:</span>
-            <span class="text-gray-900">${timeFormatted}</span>
-        </div>
-        <div class="flex items-center mb-3">
-            <i class="fas fa-users text-indigo-600 w-6"></i>
-            <span class="font-semibold text-gray-700 w-32">People:</span>
-            <span class="text-gray-900">${data.numberOfPeople}</span>
-        </div>
-        <div class="flex items-center mb-3">
-            <i class="fas fa-envelope text-indigo-600 w-6"></i>
-            <span class="font-semibold text-gray-700 w-32">Email:</span>
-            <span class="text-gray-900">${data.email}</span>
-        </div>
-        <div class="flex items-center mb-3">
-            <i class="fas fa-phone text-indigo-600 w-6"></i>
-            <span class="font-semibold text-gray-700 w-32">Phone:</span>
-            <span class="text-gray-900">${data.phone}</span>
-        </div>
-        <div class="flex items-start">
-            <i class="fas fa-file-alt text-indigo-600 w-6 mt-1"></i>
-            <span class="font-semibold text-gray-700 w-32">Details:</span>
-            <span class="text-gray-900 flex-1">${data.details}</span>
-        </div>
-    `;
-
+/* ============================================================
+   CONFIRMATION MODAL
+============================================================ */
+function showConfirmation(b){
+    const modal=document.getElementById('confirmationModal'); const box=document.getElementById('confirmationDetails'); if(!modal||!box) return;
+    box.innerHTML=`<p><b>Name:</b> ${b.name}</p><p><b>Date:</b> ${formatDate(b.date)}</p><p><b>Time:</b> ${formatTime(b.time)}</p><p><b>People:</b> ${b.numberOfPeople}</p><p><b>Email:</b> ${b.email}</p><p><b>Phone:</b> ${b.phone}</p><p><b>Details:</b> ${b.details}</p>`;
     modal.classList.remove('hidden');
 }
 
-// Format time helper
-function formatTime(time) {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
-    return `${displayHour}:${minutes} ${ampm}`;
+/* ============================================================
+   LOAD ADMIN
+============================================================ */
+async function loadAdmin(){
+    if(!isLoggedIn()){ window.location.href='login.html'; return; }
+    await syncLocal();
+    let list=[];
+    try{ const snap=await BOOKINGS.get(); list=snap.docs.map(d=>({ id:d.id, ...d.data() })); }catch(err){ const local=readLocal(); list=local.map(x=>({ id:x.remoteId||x.localId, ...x })); }
+    // stats
+    const total=list.length; const today=new Date().toISOString().split('T')[0]; const todayCount=list.filter(b=>b.date===today).length; const totalPeople=list.reduce((s,b)=>s+Number(b.numberOfPeople||0),0);
+    const elTotal=document.getElementById('totalBookings'); const elToday=document.getElementById('todayBookings'); const elPeople=document.getElementById('totalPeople'); if(elTotal) elTotal.textContent=total; if(elToday) elToday.textContent=todayCount; if(elPeople) elPeople.textContent=totalPeople;
+    // render table
+    const tbody=document.getElementById('bookingsTableBody'); if(!tbody) return; if(!list.length){ tbody.innerHTML='<tr><td colspan="7" class="text-center p-6">No bookings</td></tr>'; return; }
+    tbody.innerHTML=list.map(b=>`<tr class="hover:bg-gray-50"><td class="p-3">#${b.id}</td><td class="p-3">${b.name}</td><td class="p-3">${formatDate(b.date)}<br><b>${formatTime(b.time)}</b></td><td class="p-3">${b.numberOfPeople}</td><td class="p-3">${b.email}<br>${b.phone}</td><td class="p-3 max-w-xs truncate">${b.details}</td><td class="p-3"><button onclick="deleteBooking('${b.id}')" class="text-red-600">🗑️</button></td></tr>`).join('');
 }
 
-// Admin Dashboard Functions
-if (window.location.pathname.includes('admin.html')) {
-    // Check if user is logged in
-    if (!isLoggedIn()) {
-        window.location.href = 'login.html';
-    } else {
-        // Add a small delay to ensure DOM is fully loaded
-        setTimeout(() => {
-            loadAdminDashboard();
-        }, 100);
-    }
+/* ============================================================
+   DELETE BOOKING
+============================================================ */
+async function deleteBooking(id){
+    try{ await BOOKINGS.doc(id).delete(); }catch(e){}
+    const filtered=readLocal().filter(x=>x.remoteId!==id && x.localId!==id); writeLocal(filtered); loadAdmin();
 }
 
-// Auto-refresh admin dashboard every 30 seconds to show new bookings
-if (window.location.pathname.includes('admin.html') && isLoggedIn()) {
-    setInterval(() => {
-        loadAdminDashboard();
-        console.log('Admin dashboard refreshed automatically');
-    }, 30000); // Refresh every 30 seconds
+/* ============================================================
+   SEARCH
+============================================================ */
+async function searchBookings(){
+    const emailVal=(document.getElementById('searchEmail')||{}).value?.trim()||''; const phoneVal=(document.getElementById('searchPhone')||{}).value?.trim()||'';
+    await syncLocal();
+    let results=[];
+    try{ const snap=await BOOKINGS.get(); results=snap.docs.map(d=>({ id:d.id, ...d.data() })).filter(b=> (emailVal && (b.email||'').toLowerCase()===emailVal.toLowerCase()) || (phoneVal && (b.phone||'').includes(phoneVal)) ); }catch(err){ const local=readLocal(); results=local.filter(b=> (emailVal && (b.email||'').toLowerCase()===emailVal.toLowerCase()) || (phoneVal && (b.phone||'').includes(phoneVal)) ).map(b=>({ id:b.remoteId||b.localId, ...b })); }
+    displayUserBookings(results);
 }
 
-async function loadAdminDashboard() {
-    try {
-        // Show loading state
-        const totalBookingsElement = document.getElementById('totalBookings');
-        const todayBookingsElement = document.getElementById('todayBookings');
-        const totalPeopleElement = document.getElementById('totalPeople');
-
-        if (totalBookingsElement) totalBookingsElement.textContent = '...';
-        if (todayBookingsElement) todayBookingsElement.textContent = '...';
-        if (totalPeopleElement) totalPeopleElement.textContent = '...';
-
-        // Refresh bookings from database
-        bookings = await bookingDB.getAllBookings();
-        await updateStats();
-        displayBookings();
-        displayMobileBookings();
-
-        console.log('Admin dashboard loaded successfully with', bookings.length, 'bookings');
-    } catch (error) {
-        console.error('Error loading admin dashboard:', error);
-    }
+function displayUserBookings(list){
+    const table=document.getElementById('userBookingsTable'); const cards=document.getElementById('userBookingsCards'); const searchResults=document.getElementById('searchResults'); const noResults=document.getElementById('noResults');
+    if(!list.length){ if(searchResults) searchResults.classList.add('hidden'); if(noResults) noResults.classList.remove('hidden'); return; }
+    if(noResults) noResults.classList.add('hidden'); if(searchResults) searchResults.classList.remove('hidden');
+    if(table) table.innerHTML=list.map(b=>`<tr><td class="p-3">#${b.id}</td><td class="p-3">${formatDate(b.date)}<br>${formatTime(b.time)}</td><td class="p-3">${b.numberOfPeople}</td><td class="p-3">${b.details}</td><td class="p-3"><span class="px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs">Confirmed</span></td></tr>`).join('');
+    if(cards) cards.innerHTML=list.map(b=>`<div class="booking-card"><div class="booking-card-header"><div><b>${b.name||''}</b></div><div><span class="px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs">Confirmed</span></div></div><div class="booking-card-content"><div class="booking-field"><span class="booking-field-label">Date:</span><span class="booking-field-value">${formatDate(b.date)}</span></div><div class="booking-field"><span class="booking-field-label">Time:</span><span class="booking-field-value">${formatTime(b.time)}</span></div><div class="booking-field"><span class="booking-field-label">People:</span><span class="booking-field-value">${b.numberOfPeople}</span></div><div class="booking-field"><span class="booking-field-label">Details:</span><span class="booking-field-value">${b.details}</span></div></div></div>`).join('');
 }
 
-async function updateStats() {
-    try {
-        // Get fresh stats from database
-        const stats = await bookingDB.getStats();
-
-        const totalBookingsElement = document.getElementById('totalBookings');
-        const todayBookingsElement = document.getElementById('todayBookings');
-        const totalPeopleElement = document.getElementById('totalPeople');
-
-        if (totalBookingsElement) totalBookingsElement.textContent = stats.total;
-        if (todayBookingsElement) todayBookingsElement.textContent = stats.today;
-        if (totalPeopleElement) totalPeopleElement.textContent = stats.totalPeople;
-    } catch (error) {
-        console.error('Error updating stats:', error);
-    }
-}
-
-function displayBookings() {
-    const tbody = document.getElementById('bookingsTableBody');
-
-    // Debug logging
-    console.log('displayBookings called');
-    console.log('tbody element:', tbody);
-    console.log('bookings array:', bookings);
-    console.log('bookings length:', bookings.length);
-
-    if (!tbody) {
-        console.error('bookingsTableBody element not found!');
-        return;
-    }
-
-    if (bookings.length === 0) {
-        console.log('No bookings found, showing empty message');
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                    <i class="fas fa-inbox text-4xl mb-2"></i>
-                    <p>No bookings yet</p>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-
-    // Sort bookings by date and time (newest first)
-    const sortedBookings = [...bookings].sort((a, b) => {
-        const dateA = new Date(a.date + 'T' + a.time);
-        const dateB = new Date(b.date + 'T' + b.time);
-        return dateB - dateA;
-    });
-
-    tbody.innerHTML = sortedBookings.map((booking, index) => `
-        <tr class="hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${booking.id}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${booking.name}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                ${formatDate(booking.date)}<br>
-                <span class="text-indigo-600 font-semibold">${formatTime(booking.time)}</span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${booking.numberOfPeople}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">
-                ${booking.email}<br>
-                <span class="text-gray-600">${booking.phone}</span>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">${booking.details}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                <button onclick="deleteBooking(${booking.id})" class="text-red-600 hover:text-red-800">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-function formatDate(dateStr) {
-    const date = new Date(dateStr + 'T00:00:00');
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
-}
-
-async function deleteBooking(id) {
-    if (confirm('Are you sure you want to delete this booking?')) {
-        try {
-            const success = await bookingDB.deleteBooking(id);
-            if (success) {
-                // Refresh bookings from database
-                bookings = await bookingDB.getAllBookings();
-                await loadAdminDashboard();
-            } else {
-                alert('Error deleting booking. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error deleting booking:', error);
-            alert('Error deleting booking. Please try again.');
-        }
-    }
-}
-
-async function clearAllBookings() {
-    if (confirm('Are you sure you want to delete ALL bookings? This action cannot be undone.')) {
-        try {
-            const success = await bookingDB.clearAllBookings();
-            if (success) {
-                // Refresh bookings from database
-                bookings = await bookingDB.getAllBookings();
-                await loadAdminDashboard();
-            } else {
-                alert('Error clearing bookings. Please try again.');
-            }
-        } catch (error) {
-            console.error('Error clearing bookings:', error);
-            alert('Error clearing bookings. Please try again.');
-        }
-    }
-}
-
-// Mobile menu toggle function
-function toggleMobileMenu() {
-    const mobileMenu = document.getElementById('mobileMenu');
-    if (mobileMenu) {
-        mobileMenu.classList.toggle('hidden');
-    }
-}
-
-// Display mobile bookings cards
-function displayMobileBookings() {
-    const container = document.getElementById('mobileBookingsContainer');
-
-    if (!container) return;
-
-    if (bookings.length === 0) {
-        container.innerHTML = `
-            <div class="text-center text-gray-500 py-8">
-                <i class="fas fa-inbox text-4xl mb-2"></i>
-                <p>No bookings yet</p>
-            </div>
-        `;
-        return;
-    }
-
-    // Sort bookings by date and time (newest first)
-    const sortedBookings = [...bookings].sort((a, b) => {
-        const dateA = new Date(a.date + 'T' + a.time);
-        const dateB = new Date(b.date + 'T' + b.time);
-        return dateB - dateA;
-    });
-
-    container.innerHTML = sortedBookings.map(booking => `
-        <div class="booking-card">
-            <div class="booking-card-header">
-                <div class="flex items-center">
-                    <i class="fas fa-user text-indigo-600 mr-2"></i>
-                    <span class="font-semibold text-gray-900">${booking.name}</span>
-                </div>
-                <button onclick="deleteBooking(${booking.id})" class="text-red-600 hover:text-red-800 p-2">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-            <div class="booking-card-content">
-                <div class="booking-field">
-                    <span class="booking-field-label">ID:</span>
-                    <span class="booking-field-value">#${booking.id}</span>
-                </div>
-                <div class="booking-field">
-                    <span class="booking-field-label">Date:</span>
-                    <span class="booking-field-value">${formatDate(booking.date)}</span>
-                </div>
-                <div class="booking-field">
-                    <span class="booking-field-label">Time:</span>
-                    <span class="booking-field-value text-indigo-600 font-semibold">${formatTime(booking.time)}</span>
-                </div>
-                <div class="booking-field">
-                    <span class="booking-field-label">People:</span>
-                    <span class="booking-field-value">${booking.numberOfPeople}</span>
-                </div>
-                <div class="booking-field">
-                    <span class="booking-field-label">Email:</span>
-                    <span class="booking-field-value">${booking.email}</span>
-                </div>
-                <div class="booking-field">
-                    <span class="booking-field-label">Phone:</span>
-                    <span class="booking-field-value">${booking.phone}</span>
-                </div>
-                <div class="booking-field">
-                    <span class="booking-field-label">Details:</span>
-                    <span class="booking-field-value">${booking.details}</span>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Search bookings by email or phone
-async function searchBookings() {
-    const email = document.getElementById('searchEmail').value.trim();
-    const phone = document.getElementById('searchPhone').value.trim();
-
-    if (!email && !phone) {
-        alert('Please enter either an email address or phone number to search.');
-        return;
-    }
-
-    try {
-        // Show loading state
-        const searchResults = document.getElementById('searchResults');
-        const noResults = document.getElementById('noResults');
-        const initialState = document.getElementById('initialState');
-
-        initialState.classList.add('hidden');
-        searchResults.classList.add('hidden');
-        noResults.classList.add('hidden');
-
-        // Show loading message
-        const loadingDiv = document.createElement('div');
-        loadingDiv.id = 'searchLoading';
-        loadingDiv.className = 'bg-white rounded-xl shadow-lg p-8 text-center';
-        loadingDiv.innerHTML = `
-            <i class="fas fa-spinner fa-spin text-indigo-600 text-4xl mb-4"></i>
-            <h3 class="text-xl font-bold text-gray-900 mb-2">Searching...</h3>
-            <p class="text-gray-600">Please wait while we search for your bookings.</p>
-        `;
-
-        const container = initialState.parentNode;
-        container.appendChild(loadingDiv);
-
-        // Use database search function
-        const userBookings = await bookingDB.searchBookings(email, phone);
-
-        // Remove loading message
-        const loadingElement = document.getElementById('searchLoading');
-        if (loadingElement) {
-            loadingElement.remove();
-        }
-
-        displayUserBookings(userBookings);
-    } catch (error) {
-        console.error('Error searching bookings:', error);
-        alert('Error searching bookings. Please try again.');
-
-        // Remove loading message if it exists
-        const loadingElement = document.getElementById('searchLoading');
-        if (loadingElement) {
-            loadingElement.remove();
-        }
-    }
-}
-
-// Display user bookings
-function displayUserBookings(userBookings) {
-    const searchResults = document.getElementById('searchResults');
-    const noResults = document.getElementById('noResults');
-    const initialState = document.getElementById('initialState');
-    const tableBody = document.getElementById('userBookingsTable');
-    const cardsContainer = document.getElementById('userBookingsCards');
-
-    // Hide initial state
-    initialState.classList.add('hidden');
-
-    if (userBookings.length === 0) {
-        searchResults.classList.add('hidden');
-        noResults.classList.remove('hidden');
-        return;
-    }
-
-    // Show results
-    noResults.classList.add('hidden');
-    searchResults.classList.remove('hidden');
-
-    // Sort bookings by date and time (newest first)
-    const sortedBookings = [...userBookings].sort((a, b) => {
-        const dateA = new Date(a.date + 'T' + a.time);
-        const dateB = new Date(b.date + 'T' + b.time);
-        return dateB - dateA;
-    });
-
-    // Populate desktop table
-    tableBody.innerHTML = sortedBookings.map(booking => {
-        const bookingDate = new Date(booking.date + 'T' + booking.time);
-        const now = new Date();
-        const isPast = bookingDate < now;
-        const status = isPast ? 'Completed' : 'Upcoming';
-        const statusClass = isPast ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800';
-
-        return `
-            <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#${booking.id}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${formatDate(booking.date)}<br>
-                    <span class="text-indigo-600 font-semibold">${formatTime(booking.time)}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${booking.numberOfPeople}</td>
-                <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">${booking.details}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
-                        ${status}
-                    </span>
-                </td>
-            </tr>
-        `;
-    }).join('');
-
-    // Populate mobile cards
-    cardsContainer.innerHTML = sortedBookings.map(booking => {
-        const bookingDate = new Date(booking.date + 'T' + booking.time);
-        const now = new Date();
-        const isPast = bookingDate < now;
-        const status = isPast ? 'Completed' : 'Upcoming';
-        const statusClass = isPast ? 'bg-gray-100 text-gray-800' : 'bg-green-100 text-green-800';
-
-        return `
-            <div class="booking-card">
-                <div class="booking-card-header">
-                    <div class="flex items-center">
-                        <i class="fas fa-calendar text-indigo-600 mr-2"></i>
-                        <span class="font-semibold text-gray-900">Booking #${booking.id}</span>
-                    </div>
-                    <span class="px-2 py-1 text-xs font-semibold rounded-full ${statusClass}">
-                        ${status}
-                    </span>
-                </div>
-                <div class="booking-card-content">
-                    <div class="booking-field">
-                        <span class="booking-field-label">Name:</span>
-                        <span class="booking-field-value">${booking.name}</span>
-                    </div>
-                    <div class="booking-field">
-                        <span class="booking-field-label">Date:</span>
-                        <span class="booking-field-value">${formatDate(booking.date)}</span>
-                    </div>
-                    <div class="booking-field">
-                        <span class="booking-field-label">Time:</span>
-                        <span class="booking-field-value text-indigo-600 font-semibold">${formatTime(booking.time)}</span>
-                    </div>
-                    <div class="booking-field">
-                        <span class="booking-field-label">People:</span>
-                        <span class="booking-field-value">${booking.numberOfPeople}</span>
-                    </div>
-                    <div class="booking-field">
-                        <span class="booking-field-label">Email:</span>
-                        <span class="booking-field-value">${booking.email}</span>
-                    </div>
-                    <div class="booking-field">
-                        <span class="booking-field-label">Phone:</span>
-                        <span class="booking-field-value">${booking.phone}</span>
-                    </div>
-                    <div class="booking-field">
-                        <span class="booking-field-label">Details:</span>
-                        <span class="booking-field-value">${booking.details}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-// Allow Enter key to trigger search
-document.addEventListener('DOMContentLoaded', function () {
-    const searchEmail = document.getElementById('searchEmail');
-    const searchPhone = document.getElementById('searchPhone');
-
-    if (searchEmail) {
-        searchEmail.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                searchBookings();
-            }
-        });
-    }
-
-    if (searchPhone) {
-        searchPhone.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                searchBookings();
-            }
-        });
-    }
-
-    // Debug: Log current bookings count on page load
-    console.log('Page loaded. Current bookings in database:', bookingDB.getAllBookings().length);
-
-    // Add a global function to check database status (for debugging)
-    window.checkBookingDatabase = function () {
-        const allBookings = bookingDB.getAllBookings();
-        console.log('=== BOOKING DATABASE STATUS ===');
-        console.log('Total bookings:', allBookings.length);
-        console.log('Storage key:', bookingDB.storageKey);
-        console.log('Raw storage data:', localStorage.getItem(bookingDB.storageKey));
-        console.log('Parsed bookings:', allBookings);
-        console.log('===============================');
-        return allBookings;
-    };
-
-    // Add a global function to manually refresh admin dashboard (for debugging)
-    window.refreshAdminDashboard = function () {
-        if (typeof loadAdminDashboard === 'function') {
-            loadAdminDashboard();
-            console.log('Admin dashboard refreshed manually');
-        } else {
-            console.log('Admin dashboard function not available on this page');
-        }
-    };
-
-    // Add a test function to create a sample booking (for debugging)
-    window.createTestBooking = function () {
-        const testBooking = {
-            date: '2024-12-15',
-            time: '14:00',
-            numberOfPeople: '2',
-            details: 'Test booking for debugging',
-            name: 'Test User',
-            email: 'test@example.com',
-            phone: '9926633224'
-        };
-
-        const result = bookingDB.addBooking(testBooking);
-        console.log('Test booking created:', result);
-
-        // Refresh bookings array
-        bookings = bookingDB.getAllBookings();
-        console.log('Updated bookings array:', bookings);
-
-        // If on admin page, refresh dashboard
-        if (typeof loadAdminDashboard === 'function') {
-            loadAdminDashboard();
-        }
-
-        return result;
-    };
-
-    // Add function to clear test data
-    window.clearTestData = function () {
-        bookingDB.clearAllBookings();
-        bookings = bookingDB.getAllBookings();
-        console.log('All bookings cleared');
-
-        if (typeof loadAdminDashboard === 'function') {
-            loadAdminDashboard();
-        }
-    };
-});
+/* ============================================================
+   INIT
+============================================================ */
+window.addEventListener('load', async ()=>{ try{ await syncLocal(); }catch(e){ console.warn('init sync failed', e.message); } if(location.pathname.includes('admin.html')){ await loadAdmin(); setInterval(loadAdmin,30000); } });
+window.addEventListener('online', async ()=>{ await syncLocal(); if(location.pathname.includes('admin.html')) loadAdmin(); });
+window.toggleMobileMenu=function(){ const m=document.getElementById('mobileMenu'); if(m) m.classList.toggle('hidden'); };

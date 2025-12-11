@@ -1,130 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - BookEasy</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Admin Login | SSMV</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="stylesheet" href="styles.css"/>
 </head>
-
 <body class="bg-gradient-to-br from-purple-50 via-pink-50 to-indigo-100 min-h-screen">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto nav-container px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16 items-center">
-                <div class="flex items-center">
-                    <div
-                        class="h-8 w-8 sm:h-10 sm:w-10 mr-2 sm:mr-3 bg-indigo-600 rounded-lg flex items-center justify-center">
-                        <i class="fas fa-calendar-check text-white text-lg sm:text-xl"></i>
-                    </div>
-                    <span class="nav-brand text-lg sm:text-xl font-bold text-gray-800">BookEasy</span>
-                </div>
+<nav class="bg-white shadow">
+  <div class="nav-container mx-auto px-4">
+    <div class="flex items-center h-16">
+      <img src="ssmv logo.jpg" alt="SSMV" class="h-10 w-10 object-contain mr-2"/>
+      <span class="text-lg font-bold">SSMV</span>
+    </div>
+  </div>
+</nav>
 
-                <!-- Desktop Menu -->
-                <div class="desktop-menu hidden md:flex space-x-8">
-                    <a href="index.html" class="text-gray-600 hover:text-indigo-600">Home</a>
-                    <a href="booking.html" class="text-gray-600 hover:text-indigo-600">Book Now</a>
-                    <a href="my-bookings.html" class="text-gray-600 hover:text-indigo-600">My Bookings</a>
-                    <a href="login.html" class="text-indigo-600 font-semibold">Admin Login</a>
-                </div>
-
-                <!-- Mobile Menu Button -->
-                <button class="mobile-menu md:hidden p-2" onclick="toggleMobileMenu()">
-                    <i class="fas fa-bars text-gray-600 text-xl"></i>
-                </button>
-            </div>
-
-            <!-- Mobile Menu -->
-            <div id="mobileMenu" class="mobile-menu hidden md:hidden pb-4">
-                <div class="flex flex-col space-y-2">
-                    <a href="index.html" class="text-gray-600 hover:text-indigo-600 py-2 px-4 rounded">Home</a>
-                    <a href="booking.html" class="text-gray-600 hover:text-indigo-600 py-2 px-4 rounded">Book Now</a>
-                    <a href="my-bookings.html" class="text-gray-600 hover:text-indigo-600 py-2 px-4 rounded">My
-                        Bookings</a>
-                    <a href="login.html" class="text-indigo-600 font-semibold py-2 px-4 rounded">Admin Login</a>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Login Form -->
-    <div class="flex items-center justify-center px-4 py-12 sm:py-20">
-        <div class="form-container bg-white rounded-2xl shadow-2xl p-6 sm:p-8 md:p-12 w-full max-w-md">
-            <div class="text-center mb-6 sm:mb-8">
-                <div
-                    class="bg-indigo-100 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-lock text-indigo-600 text-2xl sm:text-3xl"></i>
-                </div>
-                <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Admin Login</h2>
-                <p class="text-gray-600 text-sm sm:text-base">Enter your credentials to access the dashboard</p>
-            </div>
-
-            <!-- Error Message -->
-            <div id="errorMessage" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-                <div class="flex items-center">
-                    <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
-                    <p class="text-sm text-red-800" id="errorText"></p>
-                </div>
-            </div>
-
-            <form id="loginForm" class="space-y-6">
-                <!-- Username -->
-                <div>
-                    <label for="username" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-user mr-2 text-indigo-600"></i>Username
-                    </label>
-                    <input type="text" id="username" name="username" required placeholder="Enter your username"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                </div>
-
-                <!-- Password -->
-                <div>
-                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-key mr-2 text-indigo-600"></i>Password
-                    </label>
-                    <div class="relative">
-                        <input type="password" id="password" name="password" required placeholder="Enter your password"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                        <button type="button" onclick="togglePassword()"
-                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700">
-                            <i id="eyeIcon" class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Remember Me -->
-                <div class="flex items-center">
-                    <input type="checkbox" id="rememberMe" name="rememberMe"
-                        class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                    <label for="rememberMe" class="ml-2 text-sm text-gray-700">Remember me</label>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit"
-                    class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold text-lg hover:bg-indigo-700 transform hover:scale-105 transition duration-300 shadow-lg">
-                    <i class="fas fa-sign-in-alt mr-2"></i>Login
-                </button>
-            </form>
-
-            <div class="mt-6 text-center">
-                <a href="index.html" class="text-sm text-indigo-600 hover:text-indigo-800">
-                    <i class="fas fa-arrow-left mr-1"></i>Back to Home
-                </a>
-            </div>
-        </div>
+<div class="flex justify-center items-center px-4 py-16">
+  <div class="bg-white rounded-xl shadow-xl p-6 sm:p-8 w-full max-w-md">
+    <div class="text-center mb-6">
+      <div class="bg-indigo-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-lock text-indigo-600 text-2xl"></i>
+      </div>
+      <h2 class="text-2xl font-bold">Admin Login</h2>
+      <p class="text-gray-600 text-sm">Authorized access only</p>
     </div>
 
-    <!-- Floating Contact Button -->
-    <a href="tel:9926633224 "
-        class="contact-button fixed bottom-6 right-6 bg-green-500 text-white px-6 py-4 rounded-full shadow-2xl hover:bg-green-600 transform hover:scale-110 transition duration-300 flex items-center gap-3 z-50">
-        <i class="fas fa-phone-alt text-xl animate-pulse"></i>
-        <span class="font-semibold">Need Help? Call: 9926633224 </span>
-    </a>
+    <div id="errorMessage" class="hidden mb-4 bg-red-50 border-l-4 border-red-500 p-3">
+      <p id="errorText" class="text-red-700 text-sm"></p>
+    </div>
 
-    <script src="script.js"></script>
+    <form id="loginForm" class="space-y-5">
+      <div>
+        <label class="font-semibold text-sm">Username</label>
+        <input id="username" type="text" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Enter username"/>
+      </div>
+      <div>
+        <label class="font-semibold text-sm">Password</label>
+        <div class="relative">
+          <input id="password" type="password" required class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Enter password"/>
+          <button type="button" onclick="togglePassword()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"><i id="eyeIcon" class="fas fa-eye"></i></button>
+        </div>
+      </div>
+      <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700"><i class="fas fa-sign-in-alt mr-2"></i> Login</button>
+    </form>
+
+    <div class="text-center mt-6">
+      <a href="index.html" class="text-indigo-600 text-sm hover:underline">← Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<a href="tel:9926633224" class="contact-button fixed bottom-6 right-6 bg-green-500 text-white px-6 py-4 rounded-full shadow flex gap-2 items-center z-50"><i class="fas fa-phone-alt"></i><span>Call</span></a>
+
+<!-- Firebase (compat) and script -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="script.js"></script>
 </body>
-
 </html>
